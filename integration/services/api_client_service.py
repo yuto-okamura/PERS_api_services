@@ -9,7 +9,10 @@ class PersApiService:
     #APIキー取得
     @staticmethod
     def get_api_key():
-        ssm = boto3.client("ssm")
+        ssm = boto3.client(
+            "ssm",
+            region_name="ap-northeast",
+        )
         
         responce = ssm.get_parameter(
             Name=PERS_API_KEY_PARAMETER,

@@ -16,5 +16,8 @@ db.sqlite3
 *.log
 
 # Runtime data
-input/
+integration/input/*
+!integration/input/.keepgit
+integration/output/*
+!integration/output/.keepgit
 logs/

@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "birth_date": "1月1日",
+    "parameter": "AA",
+    "patient_name": "A",
+    "score": 10.0
+  },
+  {
+    "id": 2,
+    "birth_date": "2月1日",
+    "parameter": "SS",
+    "patient_name": "B",
+    "score": 20.0
+  },
+  {
+    "id": 3,
+    "birth_date": "3月1日",
+    "parameter": "CC",
+    "patient_name": "C",
+    "score": 30.0
+  },
+  {
+    "id": 10,
+    "birth_date": "4月1日",
+    "parameter": "DD",
+    "patient_name": NaN,
+    "score": NaN
+  }
+]

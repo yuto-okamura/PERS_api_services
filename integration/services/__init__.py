@@ -1,2 +1,3 @@
 from .api_client_service import PersApiService
-from .data_loader_service import DataManipulation
+from .data_loader_service import DataManipulationService
+from .post_history_service import PostHistoryService

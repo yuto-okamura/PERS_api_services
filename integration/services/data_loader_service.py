@@ -7,7 +7,7 @@ from datetime import datetime
 DATA_DIR = Path("integration/input")
 OUTPUT_DIR = Path("integration/output")
 
-class DataManipulation:
+class DataManipulationService:
     
     #APIデータ取得
     @staticmethod
@@ -19,25 +19,32 @@ class DataManipulation:
     #最新のファイルの取得
     @staticmethod
     def get_latest_data_file():
-        files = list(DATA_DIR.glob("test_input_*.csv"))
-        
+        # files = list(DATA_DIR.glob("test_input_*.csv"))
+        return pd.read_csv("integration/input/test_patient.csv")
+
+    """
         if not files:
             raise FileNotFoundError(
                 f"csvファイルが見つかりません： {DATA_DIR}"
             )
         
         return max(files, key=lambda file: file.stem.split("_")[-1])
+    """
 
+
+    """
     #最新のファイル読み込み
     @staticmethod
     def load_data():
-        file_path = DataManipulation.get_latest_data_file()
+        file_path = DataManipulationService.get_latest_data_file()
         return pd.read_csv(file_path)
+    """
+
 
     @staticmethod
     def merge_data():
-        api_df = DataManipulation.load_api_data()
-        patient_df = DataManipulation.load_data()
+        api_df = DataManipulationService.load_api_data()
+        patient_df = DataManipulationService.get_latest_data_file()
 
         merged_df = api_df.merge(
             patient_df,
@@ -82,11 +89,11 @@ class DataManipulation:
     #処理まとめ
     @staticmethod
     def data_process():
-        merged_df = DataManipulation.merge_data()
+        merged_df = DataManipulationService.merge_data()
         
-        json_data = DataManipulation.create_json_data(merged_df)
+        json_data = DataManipulationService.create_json_data(merged_df)
         
-        DataManipulation.output_file(
+        DataManipulationService.output_file(
             merged_df,
             json_data,
         )

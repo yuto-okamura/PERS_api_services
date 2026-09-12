@@ -1,3 +1,14 @@
+import os
+
+os.environ.setdefault(
+    "DJANGO_SETTINGS_MODULE",
+    "config.settings",
+)
+
+import django
+
+django.setup()
+
 from integration.services.data_loader_service import DataManipulationService
 from integration.services.api_client_service import PersApiService
 from integration.services.post_history_service import PostHistoryService

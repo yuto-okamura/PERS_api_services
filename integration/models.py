@@ -1,8 +1,14 @@
 from django.db import models
 from django.conf import settings
+from masters.models import (
+    Ward,
+    Room,
+    Bed,
+)
 
-class PostHistory(models.Model):
-    class PostType(models.TextChoices):
+
+class PutHistory(models.Model):
+    class PutType(models.TextChoices):
         AUTO = "auto", "自動"
         MANUAL = "manual", "手動"
         
@@ -10,10 +16,10 @@ class PostHistory(models.Model):
         primary_key=True,
     )
     
-    post_type = models.CharField(
-        "POST種別",
+    put_type = models.CharField(
+        "PUT種別",
         max_length=10,
-        choices=PostType.choices,
+        choices=PutType.choices,
     )
 
     user = models.ForeignKey(
@@ -23,14 +29,54 @@ class PostHistory(models.Model):
         blank=True,
         verbose_name="ユーザー",
     )
-    
-    request_data = models.JSONField(
-        "送信データ",
+
+    patient_id = models.CharField(
+        "患者ID",
+        max_length=20,
     )
 
-    missing_count = models.PositiveIntegerField(
-        "突合できなかった件数",
-        default=0,
+    patient_name = models.CharField(
+        "患者氏名",
+        max_length=50,
+    )
+
+    patient_name_kana = models.CharField(
+        "患者氏名カナ",
+        max_length=50,
+    )
+    
+    admission_id = models.CharField(
+        "入院ID",
+        max_length=20,
+    )
+
+    ward = models.ForeignKey(
+        Ward,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="病棟",
+    )
+
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="put_histories",
+        verbose_name="病室",
+    )
+
+    bed = models.ForeignKey(
+        Bed,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="ベッド番号",
+    )
+
+    request_data = models.JSONField(
+        "送信データ",
     )
 
     status_code = models.PositiveIntegerField(
@@ -55,15 +101,15 @@ class PostHistory(models.Model):
         blank=True,
     )
 
-    posted_at = models.DateTimeField(
-        "POST日時",
+    put_at = models.DateTimeField(
+        "PUT日時",
         auto_now_add=True,
     )
 
     class Meta:
-        verbose_name = "POST履歴"
-        verbose_name_plural = "POST履歴"
-        ordering = ["-posted_at"]
+        verbose_name = "PUT履歴"
+        verbose_name_plural = "PUT履歴"
+        ordering = ["-put_at"]
         
     def __str__(self):
-        return f"{self.posted_at:%Y-%m-%d %H:%M:%S} {self.get_post_type_display()}"
+        return f"{self.put_at:%Y-%m-%d %H:%M:%S} {self.get_put_type_display()}"

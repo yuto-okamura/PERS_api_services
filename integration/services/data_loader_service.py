@@ -12,15 +12,58 @@ class DataManipulationService:
     #APIデータ取得
     @staticmethod
     def load_api_data():
-        return pd.read_csv("integration/input/test_api.csv")
+        with open("integration/input/test.json", "r", encoding="utf-8") as f:
+            json_data = json.load(f)
+            
+        api_df = pd.json_normalize(json_data["data"])
+
+        api_df = api_df.rename(columns={
+            "patient.id": "patient_id",
+            "patient.fullName": "patient_fullName",
+            "patient.fullNameKana": "patient_fullNameKana",
+            "patient.birthDate": "patient_birthDate",
+            "admission.id": "admission_id",
+            "admission.hospitalizedAt": "admission_hospitalizedAt",
+            "admission.dischargedAt": "admission_dischargedAt",
+        })
+
+        return api_df
+
+
+    """
+        json_data = PersApiService.get_request_data()
+        
+        api_df = pd.json_normalize(json_data["data"])
+
+        api_df = api_df.rename(columns={
+            "patient.id": "patient_id",
+            "patient.fullName": "patient_fullName",
+            "patient.fullNameKana": "patient_fullNameKana",
+            "patient.birthDate": "patient_birthDate",
+            "admission.id": "admission_id",
+            "admission.hospitalizedAt": "admission_hospitalizedAt",
+            "admission.dischargedAt": "admission_dischargedAt",
+        })
     
-        #return PersApiService.get_request_data()
+        return api_df
+    """
 
     #最新のファイルの取得
     @staticmethod
     def get_latest_data_file():
         # files = list(DATA_DIR.glob("test_input_*.csv"))
-        return pd.read_csv("integration/input/test_patient.csv")
+        
+        patient_df = pd.read_csv("integration/input/test_input_patients.csv")
+        
+        discharge_df = pd.read_csv("integration/input/test_discharge_patients.csv")
+        
+        emr_df = patient_df.merge(
+            discharge_df,
+            on="patient_id",
+            how="left",
+        )
+        
+        return emr_df
 
     """
         if not files:
@@ -44,12 +87,13 @@ class DataManipulationService:
     @staticmethod
     def merge_data():
         api_df = DataManipulationService.load_api_data()
-        patient_df = DataManipulationService.get_latest_data_file()
+        emr_df = DataManipulationService.get_latest_data_file()
 
         merged_df = api_df.merge(
-            patient_df,
+            emr_df,
             on="id",
             how="left",
+            suffixes=("_api","_emr"),
         )
 
         # unmatched_dataの取得
@@ -85,6 +129,64 @@ class DataManipulationService:
     @staticmethod
     def create_json_data(merged_df):
         return merged_df.to_dict(orient="records")
+
+    #JSONデータ作成
+    @staticmethod
+    def create_json(row, events):
+        
+        event_data = []
+
+        i = 1
+
+        for event in events:
+            event_data.append({
+                "id": f"{row['admission_id']}-{i:03d}",
+                "admission_id": row["admission_id"],
+                "type": "move",
+                "ward": {
+                    "id": event["ward_id"],
+                    "name": event["ward_name"],
+                },
+                "room": {
+                    "id": event["room_id"],
+                    "name": event["room_name"],
+                },
+                "bed": {
+                    "id": event["bed_id"],
+                    "name": event["bed_no"],
+                },
+                "executedAt": event["executed_at"].strftime("%Y-%m-%d %H:%M:%S"),
+                "isPriceDifference": {
+                    event["executed_at"].strftime("%Y-%m-%d"): event["is_price_difference"],
+                },
+            })
+            
+            i = i + 1
+        
+        return {
+            "id": row["admission_id"],
+            "status": "move",
+            "hospitalizedAt": row["admission_hospitalizedAt"],
+            "dischargedAt": row["dischargedAt"],
+            "ward": {
+                "id": row["ward_id"],
+                "name": row["ward_name"],
+            },
+            "room": {
+                "id": row["room_id"],
+                "name" : row["room_name"],
+            },
+            "bed":{
+                "id": row["bed_id"],
+                "name": row["bed_no"],
+            },
+            "patient": {
+                "id": row["patient_id"],
+                "fullNameKana": row["patient_fullNameKana"],
+                "birthDate": row["patient_birthDate"],
+            },
+            "events": event_data,
+        }
 
     #処理まとめ
     @staticmethod

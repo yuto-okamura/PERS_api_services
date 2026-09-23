@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     
     'accounts',
     'integration',
+    'masters',
 ]
 
 AUTH_USER_MODEL = "accounts.CustomUsers"

@@ -11,8 +11,8 @@ django.setup()
 
 from integration.services.data_loader_service import DataManipulationService
 from integration.services.api_client_service import PersApiService
-from integration.services.post_history_service import PostHistoryService
-from integration.models import PostHistory
+from integration.services.post_history_service import PutHistoryService
+from integration.models import PutHistory
 
 def main():
     print("PERS API service batch started")

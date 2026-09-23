@@ -1,31 +1,31 @@
 from django.contrib import admin
 
 from .models import (
-    PostHistory,
+    PutHistory,
 )
 
 
-@admin.register(PostHistory)
-class PostHistoryAdmin(admin.ModelAdmin):
+@admin.register(PutHistory)
+class PutHistoryAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "post_type",
+        "put_type",
         "user",
         "status_code",
         "is_success",
-        "posted_at",
+        "put_at",
     )
 
     readonly_fields = (
         "id",
-        "post_type",
+        "put_type",
         "user",
-        "request_data"
+        "request_data",
         "status_code",
         "response_data",
         "is_success",
         "error_message",
-        "posted_at",
+        "put_at",
     )
     
     def has_add_permission(self, request):

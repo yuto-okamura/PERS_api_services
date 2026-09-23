@@ -26,7 +26,7 @@ class PersApiService:
     def get_request_data():
         api_key = PersApiService.get_api_key()
         
-        responce = requests.get(
+        response = requests.get(
             PERS_API_URL,
             headers={
                 "Authorization": f"Bearer {api_key}",
@@ -34,9 +34,9 @@ class PersApiService:
             timeout=30,
         )
 
-        responce.raise_for_status()
+        response.raise_for_status()
         
-        return responce.json()
+        return response.json()
 
     #PostAPI
     @staticmethod

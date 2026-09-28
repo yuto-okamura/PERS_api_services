@@ -3,6 +3,14 @@ import pandas as pd
 from .api_client_service import PersApiService
 from pathlib import Path
 from datetime import datetime
+from django.utils import timezone
+from integration.models import (
+    Ward,
+    Room,
+    Bed,
+)
+from .stay_history_service import StayHistoryService
+from .put_history_service import PutHistoryService
 
 DATA_DIR = Path("integration/input")
 OUTPUT_DIR = Path("integration/output")
@@ -12,7 +20,7 @@ class DataManipulationService:
     #APIデータ取得
     @staticmethod
     def load_api_data():
-        with open("integration/input/test.json", "r", encoding="utf-8") as f:
+        with open("integration/input/test_first.json", "r", encoding="utf-8") as f:
             json_data = json.load(f)
             
         api_df = pd.json_normalize(json_data["data"])
@@ -21,11 +29,14 @@ class DataManipulationService:
             "patient.id": "patient_id",
             "patient.fullName": "patient_fullName",
             "patient.fullNameKana": "patient_fullNameKana",
-            "patient.birthDate": "patient_birthDate",
+            "patient.birthDate": "birthDate",
             "admission.id": "admission_id",
             "admission.hospitalizedAt": "admission_hospitalizedAt",
             "admission.dischargedAt": "admission_dischargedAt",
         })
+
+        if "admission_id" not in api_df.columns:
+            api_df["admission_id"] = None
 
         return api_df
 
@@ -50,13 +61,80 @@ class DataManipulationService:
 
     #最新のファイルの取得
     @staticmethod
-    def get_latest_data_file():
-        # files = list(DATA_DIR.glob("test_input_*.csv"))
+    def get_latest_data_file(file_name):
+        files = list(DATA_DIR.glob(f"{file_name}_*.csv"))
+
+        if not files:
+            raise FileNotFoundError(
+                f"csvファイルが見つかりません： {DATA_DIR}"
+            )
         
-        patient_df = pd.read_csv("integration/input/test_input_patients.csv")
+        return max(files, key=lambda file: file.stem.split("_")[-1])
+    
+    @staticmethod
+    def load_emr_data():
+
+        file_path = DataManipulationService.get_latest_data_file(
+            "test_input_patients"
+        )
+
+        stayed_at = timezone.make_aware(
+            datetime.strptime(
+            file_path.stem.split("_")[-1],
+            "%Y%m%d%H%M%S"
+            )
+        ).replace(
+            minute=0,
+            second=0,
+            microsecond=0,            
+        )
+
+        patient_df = pd.read_csv(
+            file_path,
+            dtype={
+                "patient_id": str,
+                "birthDate": str,
+                "bed_no": str,
+            },
+        )
         
-        discharge_df = pd.read_csv("integration/input/test_discharge_patients.csv")
+        discharge_file_path = DataManipulationService.get_latest_data_file(
+            "test_discharge_patients"
+        )
         
+        discharge_df = pd.read_csv(discharge_file_path)
+
+        patient_df["patient_id"] = (
+            patient_df["patient_id"]
+            .str.zfill(10)
+        )
+
+        patient_df["birthDate"] = pd.to_datetime(
+            patient_df["birthDate"],
+            format="%Y%m%d",
+            errors="coerce",
+        ).dt.strftime("%Y-%m-%d")
+        
+        patient_df["hospitalizedAt"] = pd.to_datetime(
+            patient_df["hospitalizedAt"],
+            format="%Y%m%d",
+            errors="coerce",
+        ).dt.strftime("%Y-%m-%d %H:%M:%S")
+
+        patient_df["stayed_at"] = stayed_at
+
+        discharge_df["patient_id"] = (
+            discharge_df["patient_id"]
+            .astype(str)
+            .str.zfill(10)
+        )
+        
+        discharge_df["dischargedAt"] = pd.to_datetime(
+            discharge_df["dischargedAt"],
+            format="%Y%m%d",
+            errors="coerce",
+        ).dt.strftime("%Y-%m-%d %H:%M:%S")
+
         emr_df = patient_df.merge(
             discharge_df,
             on="patient_id",
@@ -65,41 +143,76 @@ class DataManipulationService:
         
         return emr_df
 
-    """
-        if not files:
-            raise FileNotFoundError(
-                f"csvファイルが見つかりません： {DATA_DIR}"
-            )
-        
-        return max(files, key=lambda file: file.stem.split("_")[-1])
-    """
-
-
-    """
-    #最新のファイル読み込み
-    @staticmethod
-    def load_data():
-        file_path = DataManipulationService.get_latest_data_file()
-        return pd.read_csv(file_path)
-    """
-
-
     @staticmethod
     def merge_data():
         api_df = DataManipulationService.load_api_data()
-        emr_df = DataManipulationService.get_latest_data_file()
+        emr_df = DataManipulationService.load_emr_data()
 
         merged_df = api_df.merge(
             emr_df,
-            on="id",
+            on=["patient_id", "birthDate"],
             how="left",
             suffixes=("_api","_emr"),
+            indicator=True,
         )
 
-        # unmatched_dataの取得
-        missing_df = merged_df[merged_df["score"].isna()]
+        return merged_df
 
-        print(missing_df)
+    @staticmethod
+    def create_master_df():
+        ward_df = pd.DataFrame(
+            Ward.objects.values("id","emr_id", "name")
+        ).rename(columns={
+            "id": "ward_id",
+            "emr_id": "emr_id_ward",
+            "name": "ward_name",
+        })
+
+        room_df = pd.DataFrame(
+            Room.objects.values(
+                "id", 
+                "emr_id", 
+                "ward_id",
+                "name",
+                "is_private_room",
+            )
+        ).rename(columns={
+            "id": "room_id",
+            "emr_id": "emr_id_room",
+            "name": "room_name",
+        })
+
+        bed_df = pd.DataFrame(
+            Bed.objects.values(
+                "id",
+                "emr_id",
+                "room_id",
+                "bed_no",
+            )
+        ).rename(columns={
+            "id": "bed_id",
+            "emr_id": "emr_id_bed",
+            "bed_no": "bed_no_master",
+        })
+
+        master_df = ward_df.merge(
+            room_df,
+            on="ward_id",
+        ).merge(
+            bed_df,
+            on="room_id",
+        )
+
+        return master_df
+
+    @staticmethod
+    def merge_master_data(merged_df, master_df):
+        merged_df = merged_df.merge(
+            master_df,
+            left_on=["ward_code", "room_code", "bed_no"],
+            right_on=["emr_id_ward", "emr_id_room", "emr_id_bed"],
+            how="left",
+        )
 
         return merged_df
 
@@ -132,42 +245,69 @@ class DataManipulationService:
 
     #JSONデータ作成
     @staticmethod
-    def create_json(row, events):
+    def resolve_admission_id(row):
+        merge_status = row["_merge"]
         
-        event_data = []
-
-        i = 1
-
-        for event in events:
-            event_data.append({
-                "id": f"{row['admission_id']}-{i:03d}",
-                "admission_id": row["admission_id"],
-                "type": "move",
-                "ward": {
-                    "id": event["ward_id"],
-                    "name": event["ward_name"],
-                },
-                "room": {
-                    "id": event["room_id"],
-                    "name": event["room_name"],
-                },
-                "bed": {
-                    "id": event["bed_id"],
-                    "name": event["bed_no"],
-                },
-                "executedAt": event["executed_at"].strftime("%Y-%m-%d %H:%M:%S"),
-                "isPriceDifference": {
-                    event["executed_at"].strftime("%Y-%m-%d"): event["is_price_difference"],
-                },
-            })
-            
-            i = i + 1
+        if pd.notna(row["admission_id"]):
+            return row["admission_id"]
         
-        return {
-            "id": row["admission_id"],
-            "status": "move",
-            "hospitalizedAt": row["admission_hospitalizedAt"],
-            "dischargedAt": row["dischargedAt"],
+        if merge_status == "both":
+            if pd.notna(row["hospitalizedAt"]):
+                hospitalized_at = pd.to_datetime(row["hospitalizedAt"])
+                return f"{row['patient_id']}-{hospitalized_at:%Y%m%d}"
+
+        return None
+
+    @staticmethod
+    def conf_status(row):
+        order_status = row["orderStatus"]
+        merge_status = row["_merge"]
+        discharged_at = row["dischargedAt"]
+
+        status = None
+
+        if order_status == "reserved" and merge_status == "both":
+            status = "hospitalized"
+
+        elif order_status == "executing":
+            if pd.isna(discharged_at):
+                status = "hospitalized"
+            else:
+                discharged_date = pd.to_datetime(discharged_at).date()
+                
+                if discharged_date < timezone.localdate():
+                    status = "discharged"
+                else:
+                    status = "hospitalized"
+        return status
+
+    @staticmethod
+    def create_discharged_json(row, admission_id):
+        
+        request_data = PutHistoryService.get_latest_successful_request(admission_id)
+
+        if request_data is None:
+            return None
+        
+        data = request_data.copy()
+        
+        data["status"] = "discharged"
+        data["dischargedAt"] = row["dischargedAt"]
+
+        return data
+
+    @staticmethod
+    def create_json(row, admission_id, status):
+
+        events = StayHistoryService.create_events(admission_id)
+
+        data = {
+            "id": admission_id,
+            "status": status,
+            "hospitalizedAt": row["hospitalizedAt"],
+            "dischargedAt": (
+                row["dischargedAt"] if pd.notna(row["dischargedAt"]) else None
+            ),
             "ward": {
                 "id": row["ward_id"],
                 "name": row["ward_name"],
@@ -178,27 +318,35 @@ class DataManipulationService:
             },
             "bed":{
                 "id": row["bed_id"],
-                "name": row["bed_no"],
+                "name": row["bed_no_master"],
             },
             "patient": {
                 "id": row["patient_id"],
                 "fullNameKana": row["patient_fullNameKana"],
-                "birthDate": row["patient_birthDate"],
+                "birthDate": row["birthDate"],
             },
-            "events": event_data,
+            "events": events,            
         }
+
+        return data
 
     #処理まとめ
     @staticmethod
     def data_process():
         merged_df = DataManipulationService.merge_data()
         
-        json_data = DataManipulationService.create_json_data(merged_df)
+        master_df = DataManipulationService.create_master_df()
         
+        completed_df = DataManipulationService.merge_master_data(merged_df,master_df)
+        
+        #events = ""
+        #json_data = DataManipulationService.create_json(merged_df,events)
+        
+        """
         DataManipulationService.output_file(
             merged_df,
             json_data,
         )
-
-        return json_data
+        """
+        return completed_df
         

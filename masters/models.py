@@ -53,8 +53,8 @@ class Room(models.Model):
         max_length=10,
     )
     
-    is_price_difference = models.BooleanField(
-        "室料差額",
+    is_private_room = models.BooleanField(
+        "個室",
         default=False,
     )
 
@@ -106,3 +106,29 @@ class Bed(models.Model):
 
     def __str__(self):
         return f"{self.room.name}号室 - {self.bed_no}"
+
+class PersResponseMaster(models.Model):
+    status_code = models.PositiveIntegerField("ステータスコード")
+
+    result = models.CharField(
+        "結果",
+        max_length=30,
+        blank=True,
+    )
+
+    name = models.CharField(
+        "名称",
+        max_length=50,
+    )
+
+    description = models.TextField("状況")
+    
+    action = models.TextField("対応")
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["status_code", "result"],
+                name="unique_pers_response",
+            ),
+        ]

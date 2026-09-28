@@ -1,8 +1,12 @@
 import boto3
 import requests
 
-PERS_API_URL = "https://api"
+HOST_NAME = "dev.medical-system.perspay.jp"
+HOSPITAL_CODE = "Lb3yq7RPBmKx1Y25pWngVlX8K19M0adjJvDN9oLr4wkEQZeOz6"
+
+PERS_API_BASE_URL = f"https://{HOST_NAME}/api/v1/medical-system"
 PERS_API_KEY_PARAMETER = "/pers/api/api-key"
+PERS_API_URL = f"{PERS_API_BASE_URL}/hospitals/{HOSPITAL_CODE}/orders"
 
 class PersApiService:
 
@@ -30,6 +34,7 @@ class PersApiService:
             PERS_API_URL,
             headers={
                 "Authorization": f"Bearer {api_key}",
+                "Accept": "application/json",
             },
             timeout=30,
         )
@@ -38,13 +43,15 @@ class PersApiService:
         
         return response.json()
 
-    #PostAPI
+    #PutAPI
     @staticmethod
-    def post_request_data(json_data):
+    def put_request_data(json_data, order_code):
         api_key = PersApiService.get_api_key()
-        
-        responce = requests.post(
-            PERS_API_URL,
+
+        request_url = f"{PERS_API_URL}/{order_code}/admission"
+
+        response = requests.put(
+            request_url,
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
@@ -52,7 +59,5 @@ class PersApiService:
             json=json_data,
             timeout=30,
         )
-
-        responce.raise_for_status()
         
-        return responce.json()
+        return response

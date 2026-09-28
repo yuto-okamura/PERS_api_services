@@ -4,6 +4,7 @@ from masters.models import (
     Ward,
     Room,
     Bed,
+    PersResponseMaster,
 )
 
 
@@ -48,35 +49,14 @@ class PutHistory(models.Model):
     admission_id = models.CharField(
         "入院ID",
         max_length=20,
-    )
-
-    ward = models.ForeignKey(
-        Ward,
-        on_delete=models.PROTECT,
         null=True,
         blank=True,
-        verbose_name="病棟",
-    )
-
-    room = models.ForeignKey(
-        Room,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="put_histories",
-        verbose_name="病室",
-    )
-
-    bed = models.ForeignKey(
-        Bed,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        verbose_name="ベッド番号",
     )
 
     request_data = models.JSONField(
         "送信データ",
+        null=True,
+        blank=True,
     )
 
     status_code = models.PositiveIntegerField(
@@ -91,9 +71,27 @@ class PutHistory(models.Model):
         blank=True,
     )
 
-    is_success = models.BooleanField(
-        "成功",
+    pers_response = models.ForeignKey(
+        PersResponseMaster,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="PERSレスポンス",
+    )
+
+    is_communication_success = models.BooleanField(
+        "通信成功",
         default=False,
+    )
+
+    is_integration_success = models.BooleanField(
+        "連携成功",
+        default=False,
+    )
+
+    is_put_target = models.BooleanField(
+        "PUT対象",
+        default=True,
     )
 
     error_message = models.TextField(
@@ -113,3 +111,52 @@ class PutHistory(models.Model):
         
     def __str__(self):
         return f"{self.put_at:%Y-%m-%d %H:%M:%S} {self.get_put_type_display()}"
+
+class StayHistory(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    
+    admission_id = models.CharField(
+        "入院ID",
+        max_length=20,
+    )
+
+    stayed_at = models.DateTimeField(
+        "滞在日時",
+    )
+
+    ward = models.ForeignKey(
+        Ward,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="病棟",
+    )
+
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="病室"
+    )
+
+    bed = models.ForeignKey(
+        Bed,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="ベッド",
+    )
+
+    created_at = models.DateTimeField(
+        "作成日時",
+        auto_now_add=True,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["admission_id", "stayed_at"],
+                name="unique_admission_stayed_at",
+            ),
+        ]

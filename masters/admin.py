@@ -4,6 +4,7 @@ from .models import (
     Ward,
     Room,
     Bed,
+    PersResponseMaster,
 )
 
 
@@ -12,8 +13,9 @@ class RoomInline(admin.TabularInline):
     extra = 1
     fields = (
         "id",
+        "emr_id",
         "name",
-        "is_price_difference",
+        "is_private_room",
         "is_active",
     )
 
@@ -22,6 +24,7 @@ class BedInline(admin.TabularInline):
     extra = 1
     fields = (
         "id",
+        "emr_id",
         "bed_no",
         "is_active",
     )
@@ -30,12 +33,14 @@ class BedInline(admin.TabularInline):
 class WardAdmin(admin.ModelAdmin):
     list_display = (
         "id",
+        "emr_id",
         "name",
         "is_active",
     )
 
     fields = (
         "id",
+        "emr_id",
         "name",
         "is_active",
     )
@@ -48,18 +53,37 @@ class WardAdmin(admin.ModelAdmin):
 class RoomAdmin(admin.ModelAdmin):
     list_display = (
         "id",
+        "emr_id",
         "name",
-        "is_price_difference",
+        "is_private_room",
         "is_active",
     )
 
     fields = (
         "id",
+        "emr_id",
         "name",
-        "is_price_difference",
+        "is_private_room",
         "is_active",
     )
 
     inlines = (
         BedInline,
+    )
+
+@admin.register(PersResponseMaster)
+class PersResponseMasterAdmin(admin.ModelAdmin)
+    list_display = (
+        "status_code",
+        "name",
+        "description",
+        "action",
+    )
+
+    fields = (
+        "status_code",
+        "name",
+        "result",
+        "description",
+        "action",
     )

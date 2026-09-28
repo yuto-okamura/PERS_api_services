@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import (
     PutHistory,
+    StayHistory,
 )
 
 
@@ -12,7 +13,8 @@ class PutHistoryAdmin(admin.ModelAdmin):
         "put_type",
         "user",
         "status_code",
-        "is_success",
+        "is_communication_success",
+        "is_integration_success",
         "put_at",
     )
 
@@ -23,7 +25,8 @@ class PutHistoryAdmin(admin.ModelAdmin):
         "request_data",
         "status_code",
         "response_data",
-        "is_success",
+        "is_communication_success",
+        "is_integration_success",
         "error_message",
         "put_at",
     )
@@ -33,3 +36,26 @@ class PutHistoryAdmin(admin.ModelAdmin):
     
     def has_delete_permission(self, request, obj=None):
         return False
+
+@admin.register(StayHistory)
+class StayHistoryAdmin(admin.ModelAdmin):
+    list_display = (
+        "admission_id",
+        "stayed_at",
+        "ward",
+        "room",
+        "bed",
+        "created_at",
+    )
+    
+    list_filter = (
+        "ward",
+        "room",
+        "stayed_at",
+    )
+    
+    ordering = (
+        "-stayed_at",
+    )
+    
+    

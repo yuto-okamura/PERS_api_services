@@ -9,7 +9,11 @@ PATH_PERS_RESPONSE_MASTER = "integration/input/pers_response_master.csv"
 
 class Command(BaseCommand):  
 
-    def import_pers_response_masters(self):
+    help = "PERSレスポンスマスタをcsvから取り込む"
+    
+    def handle(self, *args, **options):
+        count = 0
+        
         with open(
             PATH_PERS_RESPONSE_MASTER,
             encoding="utf-8-sig",
@@ -27,3 +31,11 @@ class Command(BaseCommand):
                         "action": row["action"],
                     },
                 )
+                
+                count += 1
+                
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"PERSレスポンスマスタを{count}件取り込み完了"
+            )
+        )

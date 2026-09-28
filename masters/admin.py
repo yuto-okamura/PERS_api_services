@@ -72,7 +72,7 @@ class RoomAdmin(admin.ModelAdmin):
     )
 
 @admin.register(PersResponseMaster)
-class PersResponseMasterAdmin(admin.ModelAdmin)
+class PersResponseMasterAdmin(admin.ModelAdmin):
     list_display = (
         "status_code",
         "name",

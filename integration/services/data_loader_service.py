@@ -20,6 +20,7 @@ class DataManipulationService:
     #APIデータ取得
     @staticmethod
     def load_api_data():
+        """
         with open("integration/input/test_first.json", "r", encoding="utf-8") as f:
             json_data = json.load(f)
             
@@ -39,9 +40,8 @@ class DataManipulationService:
             api_df["admission_id"] = None
 
         return api_df
+        """
 
-
-    """
         json_data = PersApiService.get_request_data()
         
         api_df = pd.json_normalize(json_data["data"])
@@ -50,14 +50,13 @@ class DataManipulationService:
             "patient.id": "patient_id",
             "patient.fullName": "patient_fullName",
             "patient.fullNameKana": "patient_fullNameKana",
-            "patient.birthDate": "patient_birthDate",
+            "patient.birthDate": "birthDate",
             "admission.id": "admission_id",
             "admission.hospitalizedAt": "admission_hospitalizedAt",
             "admission.dischargedAt": "admission_dischargedAt",
         })
     
         return api_df
-    """
 
     #最新のファイルの取得
     @staticmethod

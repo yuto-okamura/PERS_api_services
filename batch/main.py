@@ -29,12 +29,19 @@ def main():
             ensure_ascii=False,
             indent=4,
         ))
+
+        #データフレームの作成
+        created_df = DataManipulationService.data_process()
+        
+        print(created_df)
     
     except requests.exceptions.RequestException as e:
         print(f"PERS API通信エラー: {e}")
 
     except ValueError as e:
         print(f"レスポンスJSON解析エラー: {e}")
+
+
 
     """
     

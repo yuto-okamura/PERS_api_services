@@ -15,15 +15,15 @@ class PersApiService:
     def get_api_key():
         ssm = boto3.client(
             "ssm",
-            region_name="ap-northeast",
+            region_name="ap-northeast-1",
         )
         
-        responce = ssm.get_parameter(
+        response = ssm.get_parameter(
             Name=PERS_API_KEY_PARAMETER,
             WithDecryption=True,
         )
 
-        return responce["Parameter"]["Value"]
+        return response["Parameter"]["Value"]
 
     #RequestAPI
     @staticmethod

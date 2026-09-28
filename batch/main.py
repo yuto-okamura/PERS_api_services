@@ -1,5 +1,6 @@
 import os
 import json
+import requests
 
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
@@ -18,6 +19,24 @@ from integration.models import PutHistory
 
 def main():
     print("PERS API service batch started")
+
+    try:
+
+        json_data = PersApiService.get_request_data()
+        
+        print(json.dumps(
+            json_data,
+            ensure_ascii=False,
+            indent=4,
+        ))
+    
+    except requests.exceptions.RequestException as e:
+        print(f"PERS API通信エラー: {e}")
+
+    except ValueError as e:
+        print(f"レスポンスJSON解析エラー: {e}")
+
+    """
     
     #データフレームの作成
     created_df = DataManipulationService.data_process()
@@ -78,9 +97,9 @@ def main():
             ensure_ascii=False,
             indent=4,
         ))
-
+    """
     return None
-
+    
 
 
     # 実行処理 uv run python -m batch.main タスクスケジューラ用

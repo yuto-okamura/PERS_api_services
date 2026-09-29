@@ -117,6 +117,11 @@ def main():
                 "    PERS PUTレスポンス："
                 f"status_code={response.status_code}"
             )
+            
+            print(
+                "    PERS PUTレスポンス："
+                f"body={response.text}"
+            )
 
             PutHistoryService.save(
                 row=row,

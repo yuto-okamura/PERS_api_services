@@ -124,7 +124,10 @@ class PersResponseMaster(models.Model):
     description = models.TextField("状況")
     
     action = models.TextField("対応")
-    
+
+    def __str__(self):
+        return f"{self.status_code} - {self.result}"
+
     class Meta:
         constraints = [
             models.UniqueConstraint(

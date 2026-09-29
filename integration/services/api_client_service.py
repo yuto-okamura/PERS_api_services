@@ -54,6 +54,7 @@ class PersApiService:
             request_url,
             headers={
                 "Authorization": f"Bearer {api_key}",
+                "Accept": "application/json",
                 "Content-Type": "application/json",
             },
             json=json_data,

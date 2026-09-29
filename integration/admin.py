@@ -13,6 +13,7 @@ class PutHistoryAdmin(admin.ModelAdmin):
         "put_type",
         "user",
         "status_code",
+        "pers_response",
         "is_communication_success",
         "is_integration_success",
         "put_at",
@@ -25,12 +26,27 @@ class PutHistoryAdmin(admin.ModelAdmin):
         "request_data",
         "status_code",
         "response_data",
+        "pers_response",
+        "pers_response_description",
+        "pers_response_action",
         "is_communication_success",
         "is_integration_success",
         "error_message",
         "put_at",
     )
-    
+
+    @admin.display(description="PERSレスポンス状況")
+    def pers_response_description(self, obj):
+        if obj.pers_response is None:
+            return "-"
+        return obj.pers_response.description
+
+    @admin.display(description="PERSレスポンス状況")
+    def pers_response_action(self, obj):
+        if obj.pers_response is None:
+            return "-"
+        return obj.pers_response.action
+
     def has_add_permission(self, request):
         return False
     

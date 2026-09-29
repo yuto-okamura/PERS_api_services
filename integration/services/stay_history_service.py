@@ -42,7 +42,7 @@ class StayHistoryService:
                 
                 event = {
                     "id": f"{admission_id}-{event_no:03d}",
-                    "admission_id": admission_id,
+                    "admissionId": admission_id,
                     "type": (
                         "hospitalize" if previous_bed_id is None else "move"
                     ),

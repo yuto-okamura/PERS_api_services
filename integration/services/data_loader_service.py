@@ -248,7 +248,19 @@ class DataManipulationService:
         merge_status = row["_merge"]
         
         if pd.notna(row["admission_id"]):
-            return row["admission_id"]
+            admission_id = str(row["admission_id"])
+            parts = admission_id.split("-")
+            
+            #PERS_APIのadmission_idの書式が正しい場合は採用
+            if (
+                len(parts) == 2
+                and len(parts[0]) == 10
+                and len(parts[1]) == 8
+                and parts[0].isdigit()
+                and parts[1].isdigit()
+            ):
+                return admission_id
+
         
         if merge_status == "both":
             if pd.notna(row["hospitalizedAt"]):

@@ -94,9 +94,15 @@ class PutHistoryService:
         return history.request_data
 
     @staticmethod
-    def save_put_excluded(*, row, error_message=""):
+    def save_put_excluded(
+        *, 
+        row, 
+        error_message="",
+        put_type=PutHistory.PutType.AUTO,
+        user=None,
+    ):
         return PutHistory.objects.create(
-            put_type=PutHistory.PutType.AUTO,
+            put_type=put_type,
             user=None,
             patient_id=row["patient_id"],
             patient_name=row["patient_fullName"],

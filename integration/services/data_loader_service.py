@@ -192,7 +192,11 @@ class DataManipulationService:
     @staticmethod
     def create_all_patient_df():
         emr_df = DataManipulationService.load_emr_data()
+        print(emr_df)
+        
         master_df = DataManipulationService.create_master_df()
+        print(master_df)
+        
         all_patient_df = emr_df.merge(
             master_df,
             left_on=["ward_code", "room_code", "bed_no"],

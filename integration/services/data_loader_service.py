@@ -101,7 +101,13 @@ class DataManipulationService:
             "discharge"
         )
         
-        discharge_df = pd.read_csv(discharge_file_path)
+        try:
+            discharge_df = pd.read_csv(discharge_file_path)
+
+        except pd.errors.EmptyDataError:
+            discharge_df = pd.DataFrame(
+                columns=["patient_id", "dischargedAt"]
+            )
 
         patient_df["patient_id"] = (
             patient_df["patient_id"]

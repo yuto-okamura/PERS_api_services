@@ -24,7 +24,7 @@ def main():
         all_patient_df[
             all_patient_df["bed_id"].isna()
         ][
-            {
+            [
                 "patient_id",
                 "ward_code",
                 "room_code",
@@ -32,7 +32,7 @@ def main():
                 "ward_id",
                 "room_id",
                 "bed_id",
-            }
+            ]
         ]
     )
 

@@ -1,8 +1,8 @@
 import boto3
 import requests
 
-HOST_NAME = "dev.medical-system.perspay.jp"
-HOSPITAL_CODE = "Lb3yq7RPBmKx1Y25pWngVlX8K19M0adjJvDN9oLr4wkEQZeOz6"
+HOST_NAME = "medical-system.perspay.jp"
+HOSPITAL_CODE = "JozjJWE21nqke7KYpBQO0DVbJ67bM5rvLa3yP9GNdx46RZlAXw"
 
 PERS_API_BASE_URL = f"https://{HOST_NAME}/api/v1/medical-system"
 PERS_API_KEY_PARAMETER = "/pers/api/api-key"

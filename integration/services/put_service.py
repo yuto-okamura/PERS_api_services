@@ -38,7 +38,7 @@ class PutService:
 
         print(f"    status={status}")
 
-        admission_id = DataManipulationService.resolve_admission_id(row)
+        admission_id = row["admission_id"]
 
         if admission_id is None:
             PutHistoryService.save_put_excluded(
@@ -50,29 +50,17 @@ class PutService:
             return None
 
         print(f"    admission_id={admission_id}")
-        
-        if status == "discharged" and row["_merge"] == "left_only":
-            json_data = DataManipulationService.create_discharged_json(
-                row=row,
-                admission_id=admission_id,
-            )
 
-        else:
-            StayHistoryService.save_stay_history(
-                row=row,
-                admission_id=admission_id,
-            )
-
-            json_data = DataManipulationService.create_json(
-                row=row,
-                admission_id=admission_id,
-                status=status,
-            )
+        json_data = DataManipulationService.create_json(
+            row=row,
+            admission_id=admission_id,
+            status=status,
+        )
 
         if json_data is None:
             PutHistoryService.save_put_excluded(
                 row=row,
-                error_message="過去の成功したPUT履歴が見つからないためPUT対象外",
+                error_message="PUT用データを作成できないためPUT対象外",
                 put_type=put_type,
                 user=user,
             )

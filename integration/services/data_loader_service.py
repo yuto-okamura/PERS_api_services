@@ -51,7 +51,7 @@ class DataManipulationService:
             "patient.fullName": "patient_fullName",
             "patient.fullNameKana": "patient_fullNameKana",
             "patient.birthDate": "birthDate",
-            "admission.id": "admission_id",
+            "admission.id": "pers_admission_id",
             "admission.hospitalizedAt": "admission_hospitalizedAt",
             "admission.dischargedAt": "admission_dischargedAt",
         })
@@ -74,7 +74,7 @@ class DataManipulationService:
     def load_emr_data():
 
         file_path = DataManipulationService.get_latest_data_file(
-            "test_input_patients"
+            "current_patient"
         )
 
         stayed_at = timezone.make_aware(
@@ -98,7 +98,7 @@ class DataManipulationService:
         )
         
         discharge_file_path = DataManipulationService.get_latest_data_file(
-            "test_discharge_patients"
+            "discharge"
         )
         
         discharge_df = pd.read_csv(discharge_file_path)
@@ -205,12 +205,42 @@ class DataManipulationService:
         return master_df
 
     @staticmethod
+    def create_all_patient_df():
+        emr_df = DataManipulationService.load_emr_data()
+        master_df = DataManipulationService.create_master_df()
+        all_patient_df = emr_df.merge(
+            master_df,
+            left_on=["ward_code", "room_code", "bed_no"],
+            right_on=["emr_id_ward", "emr_id_room", "emr_id_bed"],
+            how="left",
+        )
+
+        all_patient_df["admission_id"] = all_patient_df.apply(
+            DataManipulationService.set_admission_id,
+            axis=1,
+        )
+
+        return all_patient_df
+
+    @staticmethod
     def merge_master_data(merged_df, master_df):
         merged_df = merged_df.merge(
             master_df,
             left_on=["ward_code", "room_code", "bed_no"],
             right_on=["emr_id_ward", "emr_id_room", "emr_id_bed"],
             how="left",
+        )
+
+        return merged_df
+
+    @staticmethod
+    def create_merged_df(api_df, all_patient_df):
+        merged_df = api_df.merge(
+            all_patient_df,
+            on=["patient_id", "birthDate"],
+            how="left",
+            suffixes=("_api","_emr"),
+            indicator=True,
         )
 
         return merged_df
@@ -268,6 +298,14 @@ class DataManipulationService:
                 return f"{row['patient_id']}-{hospitalized_at:%Y%m%d}"
 
         return None
+
+    @staticmethod
+    def set_admission_id(row):
+        hospitalized_at = pd.to_datetime(row["hospitalizedAt"])
+        admission_id = f"{row['patient_id']}-{hospitalized_at:%Y%m%d}"
+
+        return admission_id
+
 
     @staticmethod
     def conf_status(row):

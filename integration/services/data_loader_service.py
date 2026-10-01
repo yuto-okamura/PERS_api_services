@@ -193,6 +193,7 @@ class DataManipulationService:
     def create_all_patient_df():
         emr_df = DataManipulationService.load_emr_data()
         print(emr_df)
+        print(emr_df["bed_no"])
         
         master_df = DataManipulationService.create_master_df()
         print(master_df)

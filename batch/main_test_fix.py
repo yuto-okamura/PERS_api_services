@@ -20,6 +20,8 @@ def main():
     print("[1] df作成開始")
     all_patient_df = DataManipulationService.create_all_patient_df()
 
+    """
+
     print(
         all_patient_df[
             all_patient_df["bed_id"].isna()
@@ -42,7 +44,7 @@ def main():
             row=row,
             admission_id=row["admission_id"],
         )
-    """
+    
     api_df = DataManipulationService.load_api_data()
 
     if api_df.empty:

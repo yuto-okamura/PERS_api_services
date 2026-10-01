@@ -27,7 +27,11 @@ def main():
         )
 
     api_df = DataManipulationService.load_api_data()
-    
+
+    if api_df.empty:
+        print("PERS API対象データなし")
+        return None
+
     merged_df = DataManipulationService.create_merged_df(api_df, all_patient_df)
 
     print("[1] df作成完了")

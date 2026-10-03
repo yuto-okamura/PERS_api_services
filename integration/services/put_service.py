@@ -1,4 +1,5 @@
 import requests
+import pandas as pd
 
 from integration.models import PutHistory
 from integration.services.data_loader_service import DataManipulationService
@@ -46,7 +47,7 @@ class PutService:
 
         admission_id = row["admission_id"]
 
-        if admission_id is None:
+        if pd.isna(admission_id):
             PutHistoryService.save_put_excluded(
                 row=row,
                 error_message="admission_idが取得・作成できないためPUT対象外",

@@ -1,4 +1,5 @@
 import os
+import logging
 
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
@@ -14,10 +15,13 @@ from integration.services.put_service import PutService
 from integration.services.stay_history_service import StayHistoryService
 from integration.models import PutHistory
 
+logger = logging.getLogger("batch")
+
 def main():
 
+    logger.info("バッチ開始")
+
     #データフレームの作成
-    print("[1] df作成開始")
     all_patient_df = DataManipulationService.create_all_patient_df()
 
     """
@@ -44,18 +48,17 @@ def main():
             row=row,
             admission_id=row["admission_id"],
         )
-    
+
     api_df = DataManipulationService.load_api_data()
 
     if api_df.empty:
-        print("PERS API対象データなし")
+        logger.info("PERS API対象データなし")
+        logger.info("バッチ終了")
         return None
 
+    logger.info("PERS APIデータ取得")
+   
     merged_df = DataManipulationService.create_merged_df(api_df, all_patient_df)
-
-    print("[1] df作成完了")
-
-    print(merged_df)
 
     #データフレーム対しての処理
     for _, row in merged_df.iterrows():
@@ -63,6 +66,8 @@ def main():
             row=row,
             put_type=PutHistory.PutType.AUTO,
         )
+
+    logger.info("バッチ終了")
 
     return None
 

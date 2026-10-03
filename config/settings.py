@@ -15,6 +15,40 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Batch log
+LOG_DIR = BASE_DIR / "integration" / "logs"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    
+    "formatters": {
+        "standard": {
+            "format": "{asctime} [{levelname}] {message}",
+            "style": "{",
+        },
+    },
+    
+    "handlers": {
+        "file": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": LOG_DIR / "batch.log",
+            "when": "midnight",
+            "interval": 1,
+            "backupCount": 30,
+            "encoding": "utf-8",
+            "formatter": "standard",
+        },
+    },
+    
+    "loggers": {
+        "batch": {
+            "handlers": ["file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/

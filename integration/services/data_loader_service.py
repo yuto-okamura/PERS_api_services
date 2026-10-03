@@ -37,6 +37,27 @@ class DataManipulationService:
     
         return api_df
 
+    @staticmethod
+    def get_manual_put_row(patient_id):
+        api_df = DataManipulationService.load_api_data()
+        
+        if api_df[api_df["patient_id"] == patient_id].empty:
+            return None
+
+        all_patient_df = DataManipulationService.create_all_patient_df()
+
+        merged_df = DataManipulationService.create_merged_df(
+            api_df=api_df,
+            all_patient_df=all_patient_df,
+        )
+
+        target_df = merged_df[merged_df["patient_id"] == patient_id]
+
+        if target_df.empty:
+            return None
+
+        return target_df.iloc[0]
+
     #最新のファイルの取得
     @staticmethod
     def get_latest_data_file(file_name):

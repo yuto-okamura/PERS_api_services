@@ -66,10 +66,11 @@ class StayHistoryService:
 
                 events.append(event)
                 previous_bed_id = stay.bed_id
-                
-            event["isPriceDifference"][
-                stay.stayed_at.strftime("%Y-%m-%d")
-            ] = False
+
+            if event is not None:                
+                event["isPriceDifference"][
+                    stay.stayed_at.strftime("%Y-%m-%d")
+                ] = False
 
         return events
 

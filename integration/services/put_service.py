@@ -8,7 +8,13 @@ from integration.services.api_client_service import PersApiService
 
 
 class PutService:
-    
+
+    class ManualPutResult:
+        SUCCESS = "success"
+        NOT_FOUND = "not_found"
+        EXCLUDED = "excluded"
+        ERROR = "error"
+
     @staticmethod
     def execute(
         *,
@@ -109,3 +115,21 @@ class PutService:
             print("    通信エラー PutHistory保存完了")
             
             return None
+        
+    @staticmethod
+    def execute_manual(*, patient_id, user):
+        row = DataManipulationService.get_manual_put_row(patient_id=patient_id)
+        
+        if row is None:
+            return PutService.ManualPutResult.NOT_FOUND
+
+        response = PutService.execute(
+            row=row,
+            put_type=PutHistory.PutType.MANUAL,
+            user=user,
+        )
+
+        if response is None:
+            return PutService.ManualPutResult.ERROR
+
+        return PutService.ManualPutResult.SUCCESS

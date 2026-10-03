@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.http import HttpRequest
 
 from .models import (
@@ -8,6 +8,7 @@ from .models import (
     StayHistory,
 )
 
+from integration.services.put_service import PutService
 
 @admin.register(PutHistory)
 class PutHistoryAdmin(admin.ModelAdmin):
@@ -69,11 +70,36 @@ class PutHistoryAdmin(admin.ModelAdmin):
     @admin.action(description="選択した患者を手動PUT")
     def manual_put(self, request, queryset):
         for put_history in queryset:
+            patient_id = put_history.patient_id
+            
             print(
                 f"手動PUT対象："
                 f"patient_id={put_history.patient_id}, "
                 f"admission_id={put_history.admission_id}"
             )
+
+            put_result =PutService.execute_manual(
+                patient_id=patient_id,
+                user=request.user,
+            )
+
+        """
+        if put_result == PutService.ManualPutResult.SUCCESS:
+            messages.success(
+                request,
+                f"患者ID {patient_id} のPUT処理完了"
+            )
+        elif put_result == PutService.ManualPutResult.NOT_FOUND:
+            messages.warning(
+                request,
+                f"患者ID {patient_id} はPERS側に存在しないため、PUT処理未実行"
+            ) 
+        else:
+            messages.warning(
+                request,
+                f"患者ID {patient_id} のPUT処理中にエラーが発生しました"
+            )
+        """
 
     @admin.display(description="PERSレスポンス状況")
     def pers_response_description(self, obj):

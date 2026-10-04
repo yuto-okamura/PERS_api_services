@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 from masters.models import (
     Ward,
     Room,
@@ -110,7 +111,8 @@ class PutHistory(models.Model):
         ordering = ["-put_at"]
         
     def __str__(self):
-        return f"{self.put_at:%Y-%m-%d %H:%M:%S} {self.get_put_type_display()}"
+        put_at = timezone.localdate(self.put_at)
+        return f"{put_at:%Y-%m-%d %H:%M:%S} {self.get_put_type_display()}"
 
 class StayHistory(models.Model):
     id = models.BigAutoField(primary_key=True)

@@ -111,7 +111,7 @@ class PutHistory(models.Model):
         ordering = ["-put_at"]
         
     def __str__(self):
-        put_at = timezone.localdate(self.put_at)
+        put_at = timezone.localtime(self.put_at)
         return f"{put_at:%Y-%m-%d %H:%M:%S} {self.get_put_type_display()}"
 
 class StayHistory(models.Model):

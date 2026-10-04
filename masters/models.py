@@ -129,6 +129,9 @@ class PersResponseMaster(models.Model):
         return f"{self.status_code} - {self.result}"
 
     class Meta:
+        verbose_name = "PERSレスポンスマスタ"
+        verbose_name_plural = "PERSレスポンスマスタ"
+        ordering = ["status_code"]
         constraints = [
             models.UniqueConstraint(
                 fields=["status_code", "result"],

@@ -2,6 +2,7 @@ from typing import Any
 
 from django.contrib import admin, messages
 from django.http import HttpRequest
+import logging
 
 from .models import (
     PutHistory,
@@ -9,6 +10,8 @@ from .models import (
 )
 
 from integration.services.put_service import PutService
+
+logger = logging.getLogger("batch")
 
 @admin.register(PutHistory)
 class PutHistoryAdmin(admin.ModelAdmin):
@@ -72,7 +75,7 @@ class PutHistoryAdmin(admin.ModelAdmin):
         for put_history in queryset:
             patient_id = put_history.patient_id
             
-            print(
+            logger.info(
                 f"手動PUT対象："
                 f"patient_id={put_history.patient_id}, "
                 f"admission_id={put_history.admission_id}"
@@ -83,23 +86,38 @@ class PutHistoryAdmin(admin.ModelAdmin):
                 user=request.user,
             )
 
-        """
-        if put_result == PutService.ManualPutResult.SUCCESS:
-            messages.success(
-                request,
-                f"患者ID {patient_id} のPUT処理完了"
-            )
-        elif put_result == PutService.ManualPutResult.NOT_FOUND:
-            messages.warning(
-                request,
-                f"患者ID {patient_id} はPERS側に存在しないため、PUT処理未実行"
-            ) 
-        else:
-            messages.warning(
-                request,
-                f"患者ID {patient_id} のPUT処理中にエラーが発生しました"
-            )
-        """
+            if put_result == PutService.ManualPutResult.SUCCESS:
+                logger.info(
+                    f"手動PUT成功："
+                    f"patient_id={patient_id}"
+                )
+                
+                messages.success(
+                    request,
+                    f"患者ID {patient_id} のPUT処理完了"
+                )
+                
+            elif put_result == PutService.ManualPutResult.NOT_FOUND:
+                logger.warning(
+                    f"手動PUT対象なし："
+                    f"patient_id={patient_id}"
+                )
+                
+                messages.warning(
+                    request,
+                    f"患者ID {patient_id} はPERS側に存在しないため、PUT処理未実行"
+                )
+                
+            else:
+                logger.warning(
+                    f"手動PUTエラー："
+                    f"patient_id={patient_id}"
+                )
+                
+                messages.warning(
+                    request,
+                    f"患者ID {patient_id} のPUT処理中にエラーが発生しました"
+                )
 
     @admin.display(description="PERSレスポンス状況")
     def pers_response_description(self, obj):

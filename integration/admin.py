@@ -1,7 +1,10 @@
 from typing import Any
-
 from django.contrib import admin, messages
 from django.http import HttpRequest
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+
+import json
 import logging
 
 from .models import (
@@ -26,25 +29,62 @@ class PutHistoryAdmin(admin.ModelAdmin):
         "put_at",
     )
 
-    fields = (
-        "id",
-        "put_type",
-        "user",
-        "patient_id",
-        "patient_name",
-        "patient_name_kana",
-        "admission_id",
-        "request_data",
-        "status_code",
-        "response_data",
-        "pers_response",
-        "pers_response_description",
-        "pers_response_action",
-        "is_communication_success",
-        "is_integration_success",
-        "is_put_target",
-        "error_message",
-        "put_at",
+    fieldsets = (
+        (
+            "基本情報",
+            {
+                "fields": (
+                    "id",
+                    "put_type",
+                    "user",
+                    "put_at",
+                ),
+            },
+        ),
+        (
+            "患者情報",
+            {
+                "fields": (
+                    "patient_id",
+                    "patient_name",
+                    "patient_name_kana",
+                    "admission_id",                    
+                ),
+            },
+        ),
+        (
+            "PUT・通信情報",
+            {
+                "fields": (
+                    "request_data_display",
+                    "status_code",
+                    "response_data_display", 
+                    "is_communication_success",
+                    "is_integration_success",
+                    "is_put_target",                   
+                ),
+            },
+        ),
+        (
+            "PERSレスポンス",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    "pers_response",
+                    "pers_response_description",
+                    "pers_response_action",
+                ),
+            },
+        ),
+        (
+            "エラー情報",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    "error_message",                    
+                ),
+            },
+        ),
     )
 
     readonly_fields = (
@@ -55,9 +95,9 @@ class PutHistoryAdmin(admin.ModelAdmin):
         "patient_name",
         "patient_name_kana",
         "admission_id",
-        "request_data",
+        "request_data_display",
         "status_code",
-        "response_data",
+        "response_data_display",
         "pers_response",
         "pers_response_description",
         "pers_response_action",
@@ -118,6 +158,50 @@ class PutHistoryAdmin(admin.ModelAdmin):
                     request,
                     f"患者ID {patient_id} のPUT処理中にエラーが発生しました"
                 )
+
+    @admin.display(description="リクエストJSON")
+    def request_data_display(self, obj):
+        if obj.request_data is None:
+            return "-"
+        
+        json_text = json.dumps(
+            obj.request_data,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+        return format_html(
+            '<pre style="'
+            'max-height: 400px; '
+            'overflow: auto; '
+            'white-space: pre-wrap; '
+            'word-break: break-word; '
+            'margin: 0;'
+            '">{}</pre>',
+            json_text,
+        )
+
+    @admin.display(description="レスポンスJSON")
+    def response_data_display(self, obj):
+        if obj.response_data is None:
+            return "-"
+        
+        json_text = json.dumps(
+            obj.response_data,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+        return format_html(
+            '<pre style="'
+            'max-height: 400px; '
+            'overflow: auto; '
+            'white-space: pre-wrap; '
+            'word-break: break-word; '
+            'margin: 0;'
+            '">{}</pre>',
+            json_text,
+        )
 
     @admin.display(description="PERSレスポンス状況")
     def pers_response_description(self, obj):

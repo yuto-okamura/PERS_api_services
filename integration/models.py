@@ -157,7 +157,7 @@ class StayHistory(models.Model):
 
     class Meta:
         verbose_name = "滞在履歴"
-        verbose_name = "滞在履歴"
+        verbose_name_plural = "滞在履歴"
         ordering = ["-stayed_at"]
         constraints = [
             models.UniqueConstraint(

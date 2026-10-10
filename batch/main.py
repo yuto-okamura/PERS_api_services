@@ -3,7 +3,7 @@ import logging
 
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
-    "config.settings",
+    "config.batch_settings",
 )
 
 import django

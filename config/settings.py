@@ -30,9 +30,9 @@ LOGGING = {
     },
     
     "handlers": {
-        "file": {
+        "django_file": {
             "class": "logging.handlers.TimedRotatingFileHandler",
-            "filename": LOG_DIR / "batch.log",
+            "filename": LOG_DIR / "django.log",
             "when": "midnight",
             "interval": 1,
             "backupCount": 30,
@@ -60,8 +60,8 @@ LOGGING = {
     },
     
     "loggers": {
-        "batch": {
-            "handlers": ["file"],
+        "django": {
+            "handlers": ["django_file"],
             "level": "INFO",
             "propagate": False,
         },

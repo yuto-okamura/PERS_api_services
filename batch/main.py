@@ -43,23 +43,11 @@ def main():
     )
 
     """
-    for _, row in all_patient_df.iterrows():
-        logger.info(
-            "滞在処理開始: admission_id=%s",
-            row["admission_id"]
-        )
-        
+    for _, row in all_patient_df.iterrows():       
         StayHistoryService.save_stay_history(
             row=row,
             admission_id=row["admission_id"],
         )
-
-        StayHistoryService.supplement_admission_history(
-            row=row,
-            admission_id=row["admission_id"],
-        )
-
-        logger.info("滞在処理終了")
 
     api_df = DataManipulationService.load_api_data()
 

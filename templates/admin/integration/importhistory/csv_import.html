@@ -1,0 +1,66 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+	<link rel="stylesheet" href="{% static 'integration/css/csv_import.css' %}">
+{% endblock %}
+
+{% block content %}
+
+	<form method="post" enctype="multipart/form-data" class="csv-import-form">
+		{% csrf_token %}
+
+		<div class="csv-import-field">
+				<label for="{{ form.patient_file.id_for_label }}" class="csv-import-label">
+						{{ form.patient_file.label }}
+				</label>
+
+				<div class="csv-import-input">
+						{{ form.patient_file }}
+
+						{% if form.patient_file.help_text %}
+								<p class="csv-import-help">
+										{{ form.patient_file.help_text }}
+								</p>
+						{% endif %}
+
+						{% for error in form.patient_file.errors %}
+								<p class="errornote">{{ error }}</p>
+						{% endfor %}
+				</div>
+		</div>
+
+		<div class="csv-import-field">
+				<label for="{{ form.discharge_file.id_for_label }}" class="csv-import-label">
+						{{ form.discharge_file.label }}
+				</label>
+
+				<div class="csv-import-input">
+						{{ form.discharge_file }}
+
+						{% if form.discharge_file.help_text %}
+								<p class="csv-import-help">
+										{{ form.discharge_file.help_text }}
+								</p>
+						{% endif %}
+
+						{% for error in form.discharge_file.errors %}
+								<p class="errornote">{{ error }}</p>
+						{% endfor %}
+				</div>
+		</div>
+
+		{% if form.non_field_errors %}
+				<div class="errornote">
+						{{ form.non_field_errors }}
+				</div>
+		{% endif %}
+
+		<div class="csv-import-actions">
+				<input type="submit" value="取込実行" class="default">
+		</div>
+
+	</form>
+
+{% endblock %}

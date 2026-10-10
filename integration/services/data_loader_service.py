@@ -9,7 +9,6 @@ from integration.models import (
     Room,
     Bed,
 )
-from .stay_history_service import StayHistoryService
 from .put_history_service import PutHistoryService
 
 DATA_DIR = Path("integration/input")
@@ -71,15 +70,19 @@ class DataManipulationService:
         return max(files, key=lambda file: file.stem.split("_")[-1])
     
     @staticmethod
-    def load_emr_data():
+    def load_emr_data(
+        patient_file_path=None,
+        discharge_file_path=None,
+    ):
 
-        file_path = DataManipulationService.get_latest_data_file(
-            "current_patient"
-        )
+        if patient_file_path is None:
+            patient_file_path = DataManipulationService.get_latest_data_file(
+                "current_patient"
+            )
 
         stayed_at = timezone.make_aware(
             datetime.strptime(
-            file_path.stem.split("_")[-1],
+            patient_file_path.stem.split("_")[-1],
             "%Y%m%d%H%M%S"
             )
         ).replace(
@@ -89,17 +92,18 @@ class DataManipulationService:
         )
 
         patient_df = pd.read_csv(
-            file_path,
+            patient_file_path,
             dtype={
                 "patient_id": str,
                 "birthDate": str,
                 "bed_no": str,
             },
         )
-        
-        discharge_file_path = DataManipulationService.get_latest_data_file(
-            "discharge"
-        )
+
+        if discharge_file_path is None:
+            discharge_file_path = DataManipulationService.get_latest_data_file(
+                "discharge"
+            )
         
         try:
             discharge_df = pd.read_csv(discharge_file_path)
@@ -211,13 +215,16 @@ class DataManipulationService:
         return master_df
 
     @staticmethod
-    def create_all_patient_df():
-        emr_df = DataManipulationService.load_emr_data()
-        print(emr_df)
-        print(emr_df["bed_no"])
+    def create_all_patient_df(
+        patient_file_path=None,
+        discharge_file_path=None,
+    ):
+        emr_df = DataManipulationService.load_emr_data(
+            patient_file_path=patient_file_path,
+            discharge_file_path=discharge_file_path,
+        )
         
         master_df = DataManipulationService.create_master_df()
-        print(master_df)
         
         all_patient_df = emr_df.merge(
             master_df,
@@ -357,9 +364,13 @@ class DataManipulationService:
         return data
 
     @staticmethod
-    def create_json(row, admission_id, status):
+    def to_json_value(value):
+        if pd.isna(value):
+            return None
+        return value
 
-        events = StayHistoryService.create_events(admission_id)
+    @staticmethod
+    def create_json(row, admission_id, status, events):
 
         data = {
             "id": admission_id,
@@ -369,16 +380,16 @@ class DataManipulationService:
                 row["dischargedAt"] if pd.notna(row["dischargedAt"]) else None
             ),
             "ward": {
-                "id": row["ward_id"],
-                "name": row["ward_name"],
+                "id": DataManipulationService.to_json_value(row["ward_id"]),
+                "name": DataManipulationService.to_json_value(row["ward_name"]),
             },
             "room": {
-                "id": row["room_id"],
-                "name" : row["room_name"],
+                "id": DataManipulationService.to_json_value(row["room_id"]),
+                "name" : DataManipulationService.to_json_value(row["room_name"]),
             },
             "bed":{
-                "id": row["bed_id"],
-                "name": row["bed_no_master"],
+                "id": DataManipulationService.to_json_value(row["bed_id"]),
+                "name": DataManipulationService.to_json_value(row["bed_no_master"]),
             },
             "patient": {
                 "id": row["patient_id"],
@@ -409,4 +420,6 @@ class DataManipulationService:
         )
         """
         return completed_df
+    
+
         

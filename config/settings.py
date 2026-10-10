@@ -39,6 +39,24 @@ LOGGING = {
             "encoding": "utf-8",
             "formatter": "standard",
         },
+        "csv_import_file": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": LOG_DIR / "csv_import.log",
+            "when": "midnight",
+            "interval": 1,
+            "backupCount": 30,
+            "encoding": "utf-8",
+            "formatter": "standard",            
+        },
+        "manual_put_file": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": LOG_DIR / "manual_put.log",
+            "when": "midnight",
+            "interval": 1,
+            "backupCount": 30,
+            "encoding": "utf-8",
+            "formatter": "standard",              
+        },
     },
     
     "loggers": {
@@ -46,6 +64,16 @@ LOGGING = {
             "handlers": ["file"],
             "level": "INFO",
             "propagate": False,
+        },
+        "csv_import": {
+            "handlers": ["csv_import_file"],
+            "level": "INFO",
+            "propagate": False,            
+        },
+        "manual_put": {
+            "handlers": ["manual_put_file"],
+            "level": "INFO",
+            "propagate": False,              
         },
     },
 }
@@ -94,7 +122,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

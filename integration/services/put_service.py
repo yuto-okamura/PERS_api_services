@@ -63,10 +63,13 @@ class PutService:
             )
             return None
 
+        events = StayHistoryService.create_events(admission_id)
+
         json_data = DataManipulationService.create_json(
             row=row,
             admission_id=admission_id,
             status=status,
+            events=events,
         )
 
         if json_data is None:

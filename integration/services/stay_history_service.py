@@ -1,9 +1,13 @@
+from django.db import transaction
 from integration.models import StayHistory
+from integration.services import DataManipulationService
 from masters.models import (
     Ward,
     Room,
     Bed,
 )
+
+import pandas as pd
 
 class StayHistoryService:
     
@@ -19,6 +23,49 @@ class StayHistoryService:
             }
         )
         
+        return None
+
+    @staticmethod
+    def supplement_admission_history(row, admission_id):
+        hospitalized_at = row["hospitalizedAt"]
+        
+        if pd.isna(hospitalized_at):
+            return None
+        
+        admission_date = hospitalized_at.date()
+        
+        exists = StayHistory.objects.filter(
+            admission_id=admission_id,
+            stayed_at__date=admission_date,
+        ).exists()
+
+        if exists:
+            return None
+        
+        if (
+            pd.isna(row["ward_id"])
+            or pd.isna(row["room_id"])
+            or pd.isna(row["bed_id"])
+        ):
+            return None
+
+        stayed_at = hospitalized_at.replace(
+            hour=12,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+
+        StayHistory.objects.update_or_create(
+            admission_id=admission_id,
+            stayed_at=stayed_at,
+            defaults={
+                "ward_id": row["ward_id"],
+                "room_id": row["room_id"],
+                "bed_id": row["bed_id"],
+            },            
+        )
+
         return None
 
     @staticmethod
@@ -74,4 +121,21 @@ class StayHistoryService:
 
         return events
 
+class ManualStayHistoryImportService:
+    
+    @staticmethod
+    def execute(patient_file_path, discharge_file_path):
+        all_patient_df = DataManipulationService.create_all_patient_df(
+            patient_file_path=patient_file_path,
+            discharge_file_path=discharge_file_path,
+        )
+
+        with transaction.atomic():
+            for _, row in all_patient_df.iterrows():
+                StayHistoryService.save_stay_history(
+                    row,
+                    row["admission_id"],
+                )
+                
+        return len(all_patient_df)
 

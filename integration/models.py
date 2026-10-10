@@ -165,3 +165,12 @@ class StayHistory(models.Model):
                 name="unique_admission_stayed_at",
             ),
         ]
+
+class ImportHistory(StayHistory):
+    #Csv取込専用の管理画面用モデル
+    
+    class Meta:
+        proxy = True,
+        verbose_name = "Csv取込"
+        verbose_name_plural = "Csv取込"
+        

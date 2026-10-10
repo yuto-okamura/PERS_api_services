@@ -1,0 +1,46 @@
+.csv-import-form {
+max-width: 900px;
+}
+
+.csv-import-field {
+display: grid;
+grid-template-columns: 220px minmax(0, 1fr);
+align-items: start;
+gap: 16px;
+margin-bottom: 24px;
+}
+
+.csv-import-label {
+padding-top: 6px;
+font-weight: bold;
+}
+
+.csv-import-input {
+min-width: 0;
+}
+
+.csv-import-input input[type="file"] {
+max-width: 100%;
+}
+
+.csv-import-help {
+margin: 8px 0 0;
+color: var(--body-quiet-color, #666);
+font-size: 12px;
+}
+
+.csv-import-actions {
+margin-left: 236px;
+}
+
+@media (max-width: 600px) {
+.csv-import-field {
+grid-template-columns: 1fr;
+gap: 6px;
+}
+
+.csv-import-actions {
+    margin-left: 0;
+}
+
+}

@@ -49,6 +49,11 @@ def main():
             admission_id=row["admission_id"],
         )
 
+        StayHistoryService.supplement_admission_history(
+            row=row,
+            admission_id=row["admission_id"],
+        )
+
     api_df = DataManipulationService.load_api_data()
 
     if api_df.empty:

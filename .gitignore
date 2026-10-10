@@ -21,3 +21,6 @@ integration/input/*
 integration/output/*
 !integration/output/.keepgit
 logs/
+
+# Django static files
+staticfiles/

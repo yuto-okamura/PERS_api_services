@@ -16,7 +16,7 @@ class StayHistoryService:
     
     @staticmethod
     def save_stay_history(row, admission_id):
-        logger.info(
+        print(
             "StayHistory登録: admission_id=%s, stayed_at=%s, "
             "ward_id=%s, room_id=%s, bed_id=%s",
             admission_id,

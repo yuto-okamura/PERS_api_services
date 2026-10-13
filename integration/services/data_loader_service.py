@@ -2,7 +2,7 @@ import json
 import pandas as pd
 from .api_client_service import PersApiService
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, date
 from django.utils import timezone
 from integration.models import (
     Ward,
@@ -128,7 +128,7 @@ class DataManipulationService:
             patient_df["hospitalizedAt"],
             format="%Y%m%d",
             errors="coerce",
-        ).dt.strftime("%Y-%m-%d %H:%M:%S")
+        )
 
         patient_df["stayed_at"] = stayed_at
 
@@ -140,9 +140,8 @@ class DataManipulationService:
         
         discharge_df["dischargedAt"] = pd.to_datetime(
             discharge_df["dischargedAt"],
-            format="%Y%m%d",
             errors="coerce",
-        ).dt.strftime("%Y-%m-%d %H:%M:%S")
+        )
 
         emr_df = patient_df.merge(
             discharge_df,
@@ -367,6 +366,10 @@ class DataManipulationService:
     def to_json_value(value):
         if pd.isna(value):
             return None
+        
+        if isinstance(value, (pd.Timestamp, datetime, date)):
+            return value.strftime("%Y-%m-%d %H:%M:%S")
+        
         return value
 
     @staticmethod
@@ -375,10 +378,8 @@ class DataManipulationService:
         data = {
             "id": admission_id,
             "status": status,
-            "hospitalizedAt": row["hospitalizedAt"],
-            "dischargedAt": (
-                row["dischargedAt"] if pd.notna(row["dischargedAt"]) else None
-            ),
+            "hospitalizedAt": DataManipulationService.to_json_value(row["hospitalizedAt"]),
+            "dischargedAt": DataManipulationService.to_json_value(row["dischargedAt"]),
             "ward": {
                 "id": DataManipulationService.to_json_value(row["ward_id"]),
                 "name": DataManipulationService.to_json_value(row["ward_name"]),

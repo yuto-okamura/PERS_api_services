@@ -43,9 +43,14 @@ class StayHistoryService:
         
         if pd.isna(hospitalized_at):
             return None
-        
+
+        service_start_date = pd.Timestamp("2026-10-01")
+
         admission_date = hospitalized_at.date()
-        
+
+        if admission_date < service_start_date.date():
+            return None
+
         exists = StayHistory.objects.filter(
             admission_id=admission_id,
             stayed_at__date=admission_date,

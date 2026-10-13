@@ -1,34 +1,38 @@
 import os
 import json
-import requests
 
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
-    "config.settings",
+    "config.batch_settings",
 )
 
 import django
 
 django.setup()
 
-from integration.services.data_loader_service import DataManipulationService
 from integration.services.api_client_service import PersApiService
-from integration.services.put_history_service import PutHistoryService
-from integration.services import StayHistoryService
-from integration.models import PutHistory
+
 
 def main():
-    print("PERS API service batch started")
+    print("PERS API service batch started", flush=True)
 
-    json_data = PersApiService.get_request_data()
-    
-    print(json.dumps(
-        json_data,
-        ensure_ascii=False,
-        indent=4,
-    ))
+    try:
 
-    return None
+        json_data = PersApiService.get_request_data()
+
+        print("PERS API response", flush=True)
+        print(json.dumps(
+            json_data,
+            ensure_ascii=False,
+            indent=4,
+        ))
+
+    except Exception:
+
+        import traceback
+        traceback.print_exc()
+
+    print("PERS API finished", flush=True)
 
 if __name__ == "__main__":
     main()

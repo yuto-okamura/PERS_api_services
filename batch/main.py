@@ -43,13 +43,19 @@ def main():
     )
 
     """
+    logger.info("StayHistory処理開始")
+    
     for _, row in all_patient_df.iterrows():       
         StayHistoryService.save_stay_history(
             row=row,
             admission_id=row["admission_id"],
         )
 
+
+
     api_df = DataManipulationService.load_api_data()
+
+    logger.info("API取得開始")
 
     if api_df.empty:
         logger.info("PERS API対象データなし")

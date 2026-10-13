@@ -40,6 +40,7 @@ class PutService:
             
             PutHistoryService.save_put_excluded(
                 row=row,
+                order_code=order_code,
                 error_message="PUT対象となるステータスを判定できないためPUT対象外",
                 put_type=put_type,
                 user=user,
@@ -57,6 +58,7 @@ class PutService:
             
             PutHistoryService.save_put_excluded(
                 row=row,
+                order_code=order_code,
                 error_message="admission_idが取得・作成できないためPUT対象外",
                 put_type=put_type,
                 user=user,
@@ -80,6 +82,7 @@ class PutService:
             )
             PutHistoryService.save_put_excluded(
                 row=row,
+                order_code=order_code,
                 error_message="PUT用データを作成できないためPUT対象外",
                 put_type=put_type,
                 user=user,
@@ -95,6 +98,7 @@ class PutService:
             PutHistoryService.save(
                 row=row,
                 admission_id=admission_id,
+                order_code=order_code,
                 request_data=json_data,
                 response=response,
                 put_type=put_type,
@@ -114,6 +118,7 @@ class PutService:
             PutHistoryService.save_communication_error(
                 row=row,
                 admission_id=admission_id,
+                order_code=order_code,
                 request_data=json_data,
                 error_message=str(e),
                 put_type=put_type,

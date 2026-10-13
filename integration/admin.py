@@ -34,12 +34,19 @@ class PutHistoryAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "put_type",
+        "order_code",
         "user",
         "status_code",
         "pers_response",
         "is_communication_success",
         "is_integration_success",
         "put_at",
+    )
+
+    search_fields = (
+        "order_code",
+        "patient_id",
+        "admission_id",
     )
 
     fieldsets = (
@@ -49,6 +56,7 @@ class PutHistoryAdmin(admin.ModelAdmin):
                 "fields": (
                     "id",
                     "put_type",
+                    "order_code",
                     "user",
                     "put_at",
                 ),
@@ -104,6 +112,7 @@ class PutHistoryAdmin(admin.ModelAdmin):
         "id",
         "put_type",
         "user",
+        "order_code",
         "patient_id",
         "patient_name",
         "patient_name_kana",

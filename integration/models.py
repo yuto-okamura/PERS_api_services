@@ -17,7 +17,15 @@ class PutHistory(models.Model):
     id = models.BigAutoField(
         primary_key=True,
     )
-    
+
+    order_code = models.CharField(
+        "オーダーコード",
+        max_length=50,
+        blank=True,
+        default="",
+        db_index=True,
+    )
+
     put_type = models.CharField(
         "PUT種別",
         max_length=10,

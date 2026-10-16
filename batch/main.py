@@ -68,7 +68,7 @@ def main():
 
     #データフレーム対しての処理
     for _, row in merged_df.iterrows():
-        PutService.execute(
+        PutService.execute_process(
             row=row,
             put_type=PutHistory.PutType.AUTO,
         )

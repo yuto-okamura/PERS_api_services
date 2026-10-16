@@ -7,14 +7,13 @@ class PutHistoryService:
     @staticmethod
     def save(
         *,
-        row,
-        admission_id,
         order_code,
         request_data,
         response,
         put_type=PutHistory.PutType.AUTO,
         user=None,
         error_message="",
+        patient_name,
     ):
 
         response_data = response.json()
@@ -37,10 +36,10 @@ class PutHistoryService:
         return PutHistory.objects.create(
             put_type=put_type,
             user=user,
-            patient_id=row["patient_id"],
-            patient_name=row["patient_fullName"],
-            patient_name_kana=row["patient_fullNameKana"],
-            admission_id=admission_id,
+            patient_id=request_data["patient"]["id"],
+            patient_name=patient_name,
+            patient_name_kana=request_data["patient"]["fullNameKana"],
+            admission_id=request_data["id"],
             order_code=order_code,
             request_data=request_data,
             status_code=response.status_code,
@@ -54,21 +53,20 @@ class PutHistoryService:
     @staticmethod
     def save_communication_error(
         *,
-        row,
-        admission_id,
         order_code,
         request_data,
         error_message,
         put_type=PutHistory.PutType.AUTO,
         user=None,
+        patient_name,
     ):
         return PutHistory.objects.create(
             put_type=put_type,
             user=user,
-            patient_id=row["patient_id"],
-            patient_name=row["patient_fullName"],
-            patient_name_kana=row["patient_fullNameKana"],
-            admission_id=admission_id,
+            patient_id=request_data["patient"]["id"],
+            patient_name=patient_name,
+            patient_name_kana=request_data["patient"]["fullNameKana"],
+            admission_id=request_data["id"],
             order_code=order_code,
             request_data=request_data,
             status_code=None,

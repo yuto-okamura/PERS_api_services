@@ -323,29 +323,25 @@ class DataManipulationService:
 
         return admission_id
 
-
     @staticmethod
     def conf_status(row):
         order_status = row["orderStatus"]
         merge_status = row["_merge"]
         discharged_at = row["dischargedAt"]
 
-        status = None
-
         if order_status == "reserved" and merge_status == "both":
-            status = "hospitalized"
+            return "hospitalized"
 
-        elif order_status == "executing":
+        if order_status == "ended":
+            return "discharged"
+
+        if order_status == "executing":
             if pd.isna(discharged_at):
-                status = "hospitalized"
-            else:
-                discharged_date = pd.to_datetime(discharged_at).date()
-                
-                if discharged_date < timezone.localdate():
-                    status = "discharged"
-                else:
-                    status = "hospitalized"
-        return status
+                return "hospitalized"
+            
+            return "discharged"
+        
+        return None
 
     @staticmethod
     def create_discharged_json(row, admission_id):
@@ -358,7 +354,14 @@ class DataManipulationService:
         data = request_data.copy()
         
         data["status"] = "discharged"
-        data["dischargedAt"] = row["dischargedAt"]
+        data["dischargedAt"] = DataManipulationService.to_json_value(
+            row["admission_dischargedAt"]
+        )
+
+        #滞在情報はnullに変換
+        data["ward"] = None
+        data["room"] = None
+        data["bed"] = None
 
         return data
 

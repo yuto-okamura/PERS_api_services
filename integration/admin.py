@@ -11,7 +11,7 @@ from django.urls.resolvers import URLPattern
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.urls import path, reverse
-
+from django.shortcuts import redirect
 
 import json
 import logging
@@ -25,6 +25,7 @@ from .models import (
 from integration.services.put_service import PutService
 from integration.services.data_loader_service import DataManipulationService
 from integration.services.stay_history_service import StayHistoryService
+from integration.services.put_history_service import PutHistoryService
 
 logger = logging.getLogger("manual_put")
 csv_import_logger = logging.getLogger("csv_import")
@@ -41,6 +42,7 @@ class PutHistoryAdmin(admin.ModelAdmin):
         "is_communication_success",
         "is_integration_success",
         "put_at",
+        "manual_put_link",
     )
 
     search_fields = (
@@ -129,57 +131,169 @@ class PutHistoryAdmin(admin.ModelAdmin):
         "error_message",
         "put_at",
     )
-
-    actions = ["manual_put"]
     
-    @admin.action(description="選択した患者を手動PUT")
-    def manual_put(self, request, queryset):
-        for put_history in queryset:
-            patient_id = put_history.patient_id
+    @admin.display(description="手動PUT")
+    def manual_put_link(self, obj):
+        url = reverse(
+            "admin:integration_puthistory_manual_put",
+            args=[obj.pk],
+        )
+
+        return format_html(
+            '<a class="button" href="{}">手動PUT</a>',
+            url,
+        )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        
+        custom_urls = [
+            path(
+                "<int:object_id>/manual-put/",
+                self.admin_site.admin_view(self.manual_put_view),
+                name="integration_puthistory_manual_put",
+            ),
+        ]
+
+        return custom_urls + urls
+
+    def manual_put_view(self, request, object_id):
+        
+        put_history = self.get_object(request, object_id)
+        
+        if put_history is None:
+            messages.error(request, "対象のPUT履歴が見つかりません")
+            return redirect("admin:integration_puthistory_changelist")
+
+        request_data = PutHistoryService.get_latest_successful_request(
+            admission_id=put_history.admission_id,
+        )
+
+        if request_data is None:
+            messages.error(
+                request, "過去に成功したPUT履歴がありません。"
+            )
+            return redirect("admin:integration_puthistory_change", object_id)
+
+        json_text = json.dumps(
+            request_data,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+        if request.method == "POST":
             
-            logger.info(
-                f"手動PUT対象："
-                f"patient_id={put_history.patient_id}, "
-                f"admission_id={put_history.admission_id}"
-            )
-
-            put_result =PutService.execute_manual(
-                patient_id=patient_id,
-                user=request.user,
-            )
-
-            if put_result == PutService.ManualPutResult.SUCCESS:
-                logger.info(
-                    f"手動PUT成功："
-                    f"patient_id={patient_id}"
-                )
+            json_text = request.POST.get("request_data", "")
+            
+            try:
+                json_data = json.loads(json_text)
                 
-                messages.success(
+            except json.JSONDecodeError as e:
+                messages.error(
                     request,
-                    f"患者ID {patient_id} のPUT処理完了"
+                    f"JSONの形式が正しくありません。位置：{e.pos}",
                 )
-                
-            elif put_result == PutService.ManualPutResult.NOT_FOUND:
-                logger.warning(
-                    f"手動PUT対象なし："
-                    f"patient_id={patient_id}"
-                )
-                
-                messages.warning(
-                    request,
-                    f"患者ID {patient_id} はPERS側に存在しないため、PUT処理未実行"
-                )
-                
+
             else:
-                logger.warning(
-                    f"手動PUTエラー："
-                    f"patient_id={patient_id}"
-                )
                 
-                messages.warning(
-                    request,
-                    f"患者ID {patient_id} のPUT処理中にエラーが発生しました"
-                )
+                if not isinstance(json_data, dict):
+                    messages.error(
+                        request,
+                        "リクエストJSONはオブジェクト形式で入力してください",
+                    )
+
+                else:
+                    required_keys = [
+                        "id",
+                        "status",
+                        "hospitalizedAt",
+                        "dischargedAt",
+                        "ward",
+                        "room",
+                        "bed",
+                        "patient",
+                        "events",
+                    ]
+
+                    missing_keys = [
+                        key for key in required_keys
+                        if key not in json_data
+                    ]
+
+                    if missing_keys:
+                        messages.error(
+                            request,
+                            "必須項目が不足しています："
+                            + ", ".join(missing_keys),
+                        )
+
+                    elif not isinstance(json_data["patient"], dict):
+                        messages.error(
+                            request,
+                            "patientはオブジェクト形式で入力してください",
+                        )
+
+                    elif not isinstance(json_data["events"], list):
+                        messages.error(
+                            request,
+                            "eventsは配列形式で入力してください"
+                        )
+
+                    elif json_data["id"] != put_history.admission_id:
+                        messages.error(
+                            request,
+                            "入院IDは対象レコードの入院IDから変更できません",
+                        )
+
+                    else:
+                        
+                        try:
+                            responce = PutService.execute(
+                                json_data=json_data,
+                                order_code=put_history.order_code,
+                                patient_name=put_history.patient_name,
+                                put_type=PutHistory.PutType.MANUAL,
+                                user=request.user,
+                            )
+                            
+                        except Exception:
+                            logger.exception(
+                                "手動PUT実行中に予期しないエラーが発生："
+                                f"patient_id={put_history.patient_id}, "
+                                f"admission_id={put_history.admission_id}"
+                            )
+
+                        else:
+                            if responce is not None:
+                                messages.success(
+                                    request,
+                                    "PUTリクエストを実行しました",
+                                )
+
+                            else:
+                                messages.warning(
+                                    request,
+                                    "PUT処理が完了しませんでした。"
+                                )
+
+                            return redirect(
+                                "admin:integration_puthistory_changelist"
+                            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "手動PUT",
+            "put_history": put_history,
+            "json_text": json_text,
+            "opts": self.model._meta,
+        }
+
+        return TemplateResponse(
+            request,
+            "admin/integration/puthistory/manual_put.html",
+            context,
+        )
+
 
     @admin.display(description="リクエストJSON")
     def request_data_display(self, obj):

@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+
+<h1>手動PUT</h1>
+
+<p>
+    患者ID：{{ put_history.patient_id }}
+</p>
+
+<p>
+    入院ID：{{ put_history.admission_id }}
+</p>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div>
+        <label for="request_data">リクエストJSON</label>
+        <textarea
+            id="request_data"
+            name="request_data"
+            rows="25"
+            style="width: 100%; font-family: monospace;"
+        >{{ json_text }}</textarea>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <input
+            type="submit"
+            value="PUT実行"
+            class="default"
+            onclick="return confirm('このJSONをPERS APIにPUTします。よろしいですか？');"
+        >
+        <a href="{% url 'admin:integration_puthistory_change' put_history.pk %}">
+            戻る
+        </a>
+    </div>
+</form>
+
+{% endblock %}

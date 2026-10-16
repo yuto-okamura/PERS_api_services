@@ -12,20 +12,63 @@ logger = logging.getLogger("batch")
 
 class PutService:
 
-    class ManualPutResult:
-        SUCCESS = "success"
-        NOT_FOUND = "not_found"
-        EXCLUDED = "excluded"
-        ERROR = "error"
-
     @staticmethod
     def execute(
+        *,
+        put_type=PutHistory.PutType.AUTO,
+        user=None,
+        json_data,
+        order_code,
+        patient_name,
+    ):
+
+        patient_id = json_data["patient"]["id"]
+
+        try:
+            response = PersApiService.put_request_data(
+                json_data=json_data,
+                order_code=order_code,
+            )
+            
+            PutHistoryService.save(
+                order_code=order_code,
+                request_data=json_data,
+                response=response,
+                put_type=put_type,
+                user=user,
+                patient_name=patient_name,
+            )
+
+            return response
+        
+        except requests.exceptions.RequestException as e:
+            logger.error(
+                f"PERS PUT通信エラー："
+                f"patient_id={patient_id}, "
+                f"order_code={order_code}, "
+                f"error={e}"
+            )
+            
+            PutHistoryService.save_communication_error(
+                order_code=order_code,
+                request_data=json_data,
+                error_message=str(e),
+                put_type=put_type,
+                user=user,
+                patient_name=patient_name,
+            )
+            
+            return None
+
+    @staticmethod
+    def execute_process(
         *,
         row,
         put_type=PutHistory.PutType.AUTO,
         user=None,
     ):
         patient_id = row["patient_id"]
+        patient_name = row["patient_fullName"]
         order_code = row["orderCode"]
         
         status = DataManipulationService.conf_status(row)
@@ -47,32 +90,46 @@ class PutService:
             )
             return None
 
-        admission_id = row["admission_id"]
+        if row["_merge"] == "left_only":
 
-        if pd.isna(admission_id):
-            logger.warning(
-                f"PUT対象外：admission_idが取得・作成できない"
-                f"patient_id={patient_id}, "
-                f"order_code={order_code}"
-            )
-            
-            PutHistoryService.save_put_excluded(
+            #初回PUT前 or 入院IDなし
+            if pd.isna(row["pers_admission_id"]):
+                
+                logger.warning(
+                    f"PUT対象外：admission_idが取得・作成できない"
+                    f"patient_id={patient_id}, "
+                    f"order_code={order_code}"
+                )
+                
+                PutHistoryService.save_put_excluded(
+                    row=row,
+                    order_code=order_code,
+                    error_message="admission_idが取得・作成できないためPUT対象外",
+                    put_type=put_type,
+                    user=user,
+                )
+                return None  
+
+            #退院後
+            admission_id = row["pers_admission_id"]
+
+            json_data = DataManipulationService.create_discharged_json(
                 row=row,
-                order_code=order_code,
-                error_message="admission_idが取得・作成できないためPUT対象外",
-                put_type=put_type,
-                user=user,
+                admission_id=admission_id,
             )
-            return None
 
-        events = StayHistoryService.create_events(admission_id)
+        else:
 
-        json_data = DataManipulationService.create_json(
-            row=row,
-            admission_id=admission_id,
-            status=status,
-            events=events,
-        )
+            admission_id = row["admission_id"]
+
+            events = StayHistoryService.create_events(admission_id)
+
+            json_data = DataManipulationService.create_json(
+                row=row,
+                admission_id=admission_id,
+                status=status,
+                events=events,
+            )
 
         if json_data is None:
             logger.error(
@@ -87,60 +144,14 @@ class PutService:
                 put_type=put_type,
                 user=user,
             )
-            return None
-
-        try:
-            response = PersApiService.put_request_data(
-                json_data=json_data,
-                order_code=order_code,
-            )
-            
-            PutHistoryService.save(
-                row=row,
-                admission_id=admission_id,
-                order_code=order_code,
-                request_data=json_data,
-                response=response,
-                put_type=put_type,
-                user=user,
-            )
-
-            return response
-        
-        except requests.exceptions.RequestException as e:
-            logger.error(
-                f"PERS PUT通信エラー："
-                f"patient_id={patient_id}, "
-                f"order_code={order_code}, "
-                f"error={e}"
-            )
-            
-            PutHistoryService.save_communication_error(
-                row=row,
-                admission_id=admission_id,
-                order_code=order_code,
-                request_data=json_data,
-                error_message=str(e),
-                put_type=put_type,
-                user=user,
-            )
-            
-            return None
-        
-    @staticmethod
-    def execute_manual(*, patient_id, user):
-        row = DataManipulationService.get_manual_put_row(patient_id=patient_id)
-        
-        if row is None:
-            return PutService.ManualPutResult.NOT_FOUND
+            return None        
 
         response = PutService.execute(
-            row=row,
-            put_type=PutHistory.PutType.MANUAL,
+            put_type=put_type,
             user=user,
+            json_data=json_data,
+            order_code=order_code,
+            patient_name=patient_name,
         )
 
-        if response is None:
-            return PutService.ManualPutResult.ERROR
-
-        return PutService.ManualPutResult.SUCCESS
+        return response

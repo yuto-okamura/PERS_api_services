@@ -19,6 +19,12 @@ def main():
 
     print(all_patient_df)
 
+    all_patient_df.to_csv(
+        "debug_all_patient.csv",
+        index=False,
+        encoding="utf-8-sig",
+    )
+
     return None
 
 if __name__ == "__main__":

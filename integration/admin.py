@@ -381,7 +381,11 @@ class StayHistoryAdmin(admin.ModelAdmin):
     ordering = (
         "-stayed_at",
     )
-    
+
+    search_fields = (
+        "admission_id",
+    )
+
 class CsvImportForm(forms.Form):
     #Csv取込専用フォーム
     

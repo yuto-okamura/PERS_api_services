@@ -34,6 +34,7 @@ csv_import_logger = logging.getLogger("csv_import")
 class PutHistoryAdmin(admin.ModelAdmin):
     list_display = (
         "id",
+        "patient_id",
         "put_type",
         "order_code",
         "user",

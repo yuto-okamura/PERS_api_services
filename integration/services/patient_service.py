@@ -142,7 +142,11 @@ class PatientService:
     @staticmethod
     def load_patient_df():
         
-        queryset = Patient.objects.all().values(
+        queryset = Patient.objects.filter(
+            order_code__isnull=False,
+        ).exclude(
+            order_code="",
+        ).values(
             "patient_id",
             "patient_name",
             "patient_name_kana",

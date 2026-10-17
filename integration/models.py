@@ -181,4 +181,73 @@ class ImportHistory(StayHistory):
         proxy = True,
         verbose_name = "Csv取込"
         verbose_name_plural = "Csv取込"
-        
+
+class Patient(models.Model):
+    patient_id = models.CharField(
+        "患者ID",
+        max_length=10,
+        db_index=True,
+    )
+
+    patient_name = models.CharField(
+        "患者氏名",
+        max_length=50,
+    )
+
+    patient_name_kana = models.CharField(
+        "患者氏名カナ",
+        max_length=50,
+    )
+
+    admission_id = models.CharField(
+        "入院ID",
+        max_length=20,
+        unique=True,
+        db_index=True,
+    )
+
+    order_code = models.CharField(
+        "オーダーコード",
+        max_length=20,
+        null=True,
+        blank=True,
+    )
+
+    birth_date = models.DateField(
+        "生年月日"
+    )
+
+    hospitalized_at = models.DateTimeField(
+        "入院日",
+    )
+
+    discharged_at = models.DateTimeField(
+        "退院日",
+        null=True,
+        blank=True,
+    )
+
+    service_start_date = models.DateField(
+        "サービス利用開始日",
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(
+        "作成日時",
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        "更新日時",
+        auto_now=True,
+    )
+
+    class Meta:
+        db_table = "patient"
+        verbose_name = "利用者"
+        verbose_name_plural = "利用者"
+        ordering = ["-hospitalized_at"]
+
+    def __str__(self):
+        return f"{self.patient_id} {self.patient_name}"

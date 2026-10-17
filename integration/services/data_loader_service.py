@@ -33,7 +33,18 @@ class DataManipulationService:
             "admission.hospitalizedAt": "admission_hospitalizedAt",
             "admission.dischargedAt": "admission_dischargedAt",
         })
-    
+
+        api_df["patient_id"] = (
+            api_df["patient_id"]
+            .astype("string")
+            .str.zfill(10)
+        )
+
+        api_df["birthDate"] = pd.to_datetime(
+            api_df["birthDate"],
+            errors="coerce",
+        ).dt.strftime("%Y-%m-%d")
+
         return api_df
 
     @staticmethod
@@ -115,6 +126,7 @@ class DataManipulationService:
 
         patient_df["patient_id"] = (
             patient_df["patient_id"]
+            .astype("string")
             .str.zfill(10)
         )
 
@@ -283,7 +295,55 @@ class DataManipulationService:
                 ensure_ascii=False,
                 indent=2,
             )
+
+    @staticmethod
+    def merge_api_patient_data(api_df, patient_df):
+        merged_df = api_df.merge(
+            patient_df,
+            left_on="orderCode",
+            right_on="order_code",
+            how="left",
+            suffixes=("_api", "_db"),
+            validate="one_to_one",
+            indicator=True,
+        )
         
+        return merged_df
+
+    @staticmethod
+    def create_json_request(row, admission_id, status, current_stay, events):
+        
+        data = {
+            "id": admission_id,
+            "status": status,
+            "hospitalizedAt": DataManipulationService.to_json_value(
+                row["hospitalized_at"]
+            ),
+            "dischargedAt": DataManipulationService.to_json_value(
+                row["discharged_at"],
+            ),
+            "ward": {
+                "id": DataManipulationService.to_json_value(current_stay["ward_id"]),
+                "name": DataManipulationService.to_json_value(current_stay["ward_name"]),
+            } if current_stay is not None else None,
+            "room": {
+                "id": DataManipulationService.to_json_value(current_stay["room_id"]),
+                "name": DataManipulationService.to_json_value(current_stay["room_name"]),                
+            } if current_stay is not None else None,
+            "bed": {
+                "id": DataManipulationService.to_json_value(current_stay["bed_id"]),
+                "name": DataManipulationService.to_json_value(current_stay["bed_no"]),                
+            } if current_stay is not None else None,
+            "patient": {
+                "id": row["patient_id"],
+                "fullNameKana": row["patient_name_kana"],
+                "birthDate": row["birth_date"],
+            },
+            "events": events,
+        }
+
+        return data
+
     #JSONデータ作成
     @staticmethod
     def create_json_data(merged_df):

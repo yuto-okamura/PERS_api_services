@@ -82,6 +82,12 @@ def main():
 
     api_df = DataManipulationService.load_api_data()
 
+    api_df.to_csv(
+        "debug_api_df.csv",
+        index=False,
+        encoding="utf-8-sig",
+    )
+
     for _, row in api_df.iterrows():
         PatientService.save_api_patient(row)
 

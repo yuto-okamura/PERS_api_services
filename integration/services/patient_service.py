@@ -76,6 +76,8 @@ class PatientService:
 
             print(
                 f"患者ID={patient.patient_id}, "
+                f"退院日={discharged_date!r}, "
+                f"退院時刻={discharged_time!r}, "
                 f"退院日時={patient.discharged_at!r}, "
                 f"退院時刻型={type(patient.discharged_at).__name__}"
             )

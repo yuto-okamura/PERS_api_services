@@ -89,6 +89,7 @@ class PatientService:
         
         patient_id = row.get("patient_id")
         admission_id = row.get("pers_admission_id")
+        birth_date = row.get("birthDate")
 
         if pd.notna(admission_id) and admission_id:
             patient = Patient.objects.filter(
@@ -98,6 +99,7 @@ class PatientService:
         elif pd.notna(patient_id) and patient_id:
             patient = Patient.objects.filter(
                 patient_id=patient_id,
+                birth_date=birth_date,
             ).order_by("-hospitalized_at").first()
         
         else:
@@ -105,22 +107,37 @@ class PatientService:
 
         if patient is None:
             return None
+    
+        update_fields = []
         
         order_code = row["orderCode"]
-        patient.order_code = order_code
-
+        
+        if (
+            not patient.order_code
+            and pd.notna(order_code)
+            and str(order_code).strip() != ""
+        ):
+            patient.order_code = str(order_code).strip()
+            update_fields.append("order_code")
+        
         service_start_date = row.get("startDate")
         
         if (
-            service_start_date is not None
+            patient.service_start_date is None
+            and service_start_date is not None
             and pd.notna(service_start_date)
-            and service_start_date != ""
+            and str(service_start_date).strip() != ""
         ):
             patient.service_start_date = pd.to_datetime(
                 service_start_date
             ).date()
 
-        patient.save()
+            update_fields.append("service_start_date")
+
+        if update_fields:
+            patient.save()
+
+        return patient
 
     @staticmethod
     def load_patient_df():

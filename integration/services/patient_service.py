@@ -1,6 +1,6 @@
 import logging
 import pandas as pd
-
+from django.utils import timezone
 from integration.models import Patient
 
 logger = logging.getLogger("batch")
@@ -18,10 +18,10 @@ class PatientService:
 
         if pd.notna(discharged_date):
             if pd.notna(discharged_time):
-                time_str = str(discharged_time).zfill(6)
+                time_str = str(int(discharged_time)).zfill(6)
                 
                 discharged_at = pd.to_datetime(
-                    f"{discharged_date.strftime('%Y%m%d')}{time_str}",
+                    f"{pd.Timestamp(discharged_date).strftime('%Y%m%d')}{time_str}",
                     format="%Y%m%d%H%M%S",
                     errors="coerce",
                 )
@@ -36,6 +36,29 @@ class PatientService:
                     second=0,
                 )
 
+            if pd.notna(discharged_at):
+                discharged_at = discharged_at.to_pydatetime()
+                
+                if timezone.is_naive(discharged_at):
+                    discharged_at = timezone.make_aware(
+                        discharged_at,
+                        timezone.get_current_timezone(),
+                    )
+
+            else:
+                discharged_at = None
+
+        hospitalized_at = row["hospitalizedAt"]
+        
+        if pd.notna(hospitalized_at):
+            hospitalized_at = pd.Timestamp(hospitalized_at).to_pydatetime()
+
+            if timezone.is_naive(hospitalized_at):
+                hospitalized_at = timezone.make_aware(
+                    hospitalized_at,
+                    timezone.get_current_timezone(),
+                )
+
         patient, created = Patient.objects.update_or_create(
             admission_id=row["admission_id"],
             defaults={
@@ -43,14 +66,20 @@ class PatientService:
                 "patient_name": row["fullName"],
                 "patient_name_kana": row["fullNameKana"],
                 "birth_date": row["birthDate"],
-                "hospitalized_at": row["hospitalizedAt"],
+                "hospitalized_at": hospitalized_at,
             },
         )
 
         if discharged_at is not None and pd.notna(discharged_at):
             patient.discharged_at = discharged_at
             patient.save(update_fields=["discharged_at", "updated_at"])
-        
+
+            print(
+                f"患者ID={patient.patient_id}, "
+                f"退院日時={patient.discharged_at!r}, "
+                f"退院時刻型={type(patient.discharged_at).__name__}"
+            )
+
         return patient
 
     @staticmethod

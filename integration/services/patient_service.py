@@ -16,7 +16,7 @@ class PatientService:
         discharged_date = row["dischargedAt"]
         discharged_time = row["dischargedTime"]
 
-        if pd.notna(discharged_at):
+        if pd.notna(discharged_date):
             if pd.notna(discharged_time):
                 time_str = str(discharged_time).zfill(6)
                 
@@ -25,6 +25,10 @@ class PatientService:
                     format="%Y%m%d%H%M%S",
                     errors="coerce",
                 )
+                
+                if pd.isna(discharged_at):
+                    discharged_at = None
+                
             else:
                 discharged_at = discharged_date.replace(
                     hour=12,
@@ -32,7 +36,7 @@ class PatientService:
                     second=0,
                 )
 
-        Patient.objects.update_or_create(
+        patient, created = Patient.objects.update_or_create(
             admission_id=row["admission_id"],
             defaults={
                 "patient_id": row["patient_id"],
@@ -40,9 +44,14 @@ class PatientService:
                 "patient_name_kana": row["fullNameKana"],
                 "birth_date": row["birthDate"],
                 "hospitalized_at": row["hospitalizedAt"],
-                "discharged_at": discharged_at,
             },
         )
+
+        if discharged_at is not None and pd.notna(discharged_at):
+            patient.discharged_at = discharged_at
+            patient.save(update_fields=["discharged_at", "updated_at"])
+        
+        return patient
 
     @staticmethod
     def save_api_patient(row):

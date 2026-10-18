@@ -146,7 +146,7 @@ class DataManipulationService:
 
         discharge_df["patient_id"] = (
             discharge_df["patient_id"]
-            .astype(str)
+            .astype("string")
             .str.zfill(10)
         )
         
@@ -162,6 +162,97 @@ class DataManipulationService:
         )
         
         return emr_df
+
+    @staticmethod
+    def load_emr_dataset(
+        patient_file_path=None,
+        discharge_file_path=None,
+    ):
+        
+        if patient_file_path is None:
+            patient_file_path = DataManipulationService.get_latest_data_file(
+                "current_patient"
+            )
+
+        stayed_at = timezone.make_aware(
+            datetime.strptime(
+            patient_file_path.stem.split("_")[-1],
+            "%Y%m%d%H%M%S"
+            )
+        ).replace(
+            minute=0,
+            second=0,
+            microsecond=0,            
+        )
+
+        patient_df = pd.read_csv(
+            patient_file_path,
+            dtype={
+                "patient_id": str,
+                "birthDate": str,
+                "bed_no": str,
+            },
+        )
+
+        master_df = DataManipulationService.create_master_df()
+        
+        patient_df = patient_df.merge(
+            master_df,
+            left_on=["ward_code", "room_code", "bed_no"],
+            right_on=["emr_id_ward", "emr_id_room", "emr_id_bed"],
+            how="left",
+        )
+
+        patient_df["admission_id"] = patient_df.apply(
+            DataManipulationService.set_admission_id,
+            axis=1,
+        )
+
+        patient_df["patient_id"] = (
+            patient_df["patient_id"]
+            .astype("string")
+            .str.zfill(10)
+        )
+
+        patient_df["birthDate"] = pd.to_datetime(
+            patient_df["birthDate"],
+            format="%Y%m%d",
+            errors="coerce",
+        ).dt.date
+        
+        patient_df["hospitalizedAt"] = pd.to_datetime(
+            patient_df["hospitalizedAt"],
+            format="%Y%m%d",
+            errors="coerce",
+        )
+
+        patient_df["stayed_at"] = stayed_at
+
+        if discharge_file_path is None:
+            discharge_file_path = DataManipulationService.get_latest_data_file(
+                "discharge"
+            )
+        
+        try:
+            discharge_df = pd.read_csv(discharge_file_path)
+
+        except pd.errors.EmptyDataError:
+            discharge_df = pd.DataFrame(
+                columns=["patient_id", "dischargedAt"]
+            )
+
+        discharge_df["patient_id"] = (
+            discharge_df["patient_id"]
+            .astype(str)
+            .str.zfill(10)
+        )
+        
+        discharge_df["dischargedAt"] = pd.to_datetime(
+            discharge_df["dischargedAt"],
+            errors="coerce",
+        )
+        
+        return patient_df, discharge_df    
 
     @staticmethod
     def merge_data():

@@ -630,7 +630,6 @@ class PatientAdmin(admin.ModelAdmin):
         "admission_id",
         "hospitalized_at",
         "discharged_at",
-        "admission_id",
         "order_code",
         "service_start_date",
     )

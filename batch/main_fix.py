@@ -7,6 +7,8 @@ os.environ.setdefault(
 )
 
 import django
+from django.conf import settings
+from django.utils import timezone
 
 django.setup()
 
@@ -23,33 +25,22 @@ def main():
     #logger.info("バッチ開始")
 
     #データフレームの作成
-    all_patient_df = DataManipulationService.create_all_patient_df()
 
-    """
-
-    print(
-        all_patient_df[
-            all_patient_df["bed_id"].isna()
-        ][
-            [
-                "patient_id",
-                "ward_code",
-                "room_code",
-                "bed_no",
-                "ward_id",
-                "room_id",
-                "bed_id",
-            ]
-        ]
+    emr_patient_df, discharge_df = (
+        DataManipulationService.load_emr_dataset()
     )
 
-    """
-    #logger.info("StayHistory処理開始")
-    
-    print(f"取得件数: {len(all_patient_df)}")
+    print(f"emrPatient-取得件数: {len(emr_patient_df)}")
+    print(f"discharge-取得件数: {len(discharge_df)}")
 
-    all_patient_df.to_csv(
-        "debug_all_patient.csv",
+    emr_patient_df.to_csv(
+        "debug_emr_patient.csv",
+        index=False,
+        encoding="utf-8-sig",
+    )
+
+    discharge_df.to_csv(
+        "debug_discharge.csv",
         index=False,
         encoding="utf-8-sig",
     )
@@ -57,7 +48,7 @@ def main():
     success_count = 0
     error_count = 0
 
-    for _, row in all_patient_df.iterrows():
+    for _, row in emr_patient_df.iterrows():
         try:
             PatientService.save_patient(row)
             success_count += 1
@@ -68,17 +59,50 @@ def main():
                 f"[ERROR] patient_id={row.get('patient_id')}, "
                 f"error={e}"
             )
+
+    print(f"成功件数-patient：{success_count}")
+    print(f"エラー件数-patient：{error_count}")
+
+    success_count = 0
+    error_count = 0
+
+    for _, row in emr_patient_df.iterrows():
+        try:
+            StayHistoryService.save_stay_history(
+                row=row,
+                admission_id=row["admission_id"],
+            )
+            success_count += 1
             
-    print(f"成功件数：{success_count}")
-    print(f"エラー件数：{error_count}")
-    
-    for _, row in all_patient_df.iterrows():       
-        StayHistoryService.save_stay_history(
-            row=row,
-            admission_id=row["admission_id"],
-        )
+        except Exception as e:
+            error_count += 1
+            print(
+                f"[ERROR] patient_id={row.get('patient_id')}, "
+                f"error={e}"
+            )            
 
+    print(f"成功件数-stay：{success_count}")
+    print(f"エラー件数-stay：{error_count}")
 
+    success_count = 0
+    error_count = 0
+
+    for _, row in discharge_df.iterrows():
+        try:
+            PatientService.save_discharge(row)
+            success_count += 1
+            
+        except Exception as e:
+            error_count += 1
+            print(
+                f"[ERROR] patient_id={row.get('patient_id')}, "
+                f"error={e}"
+            )
+
+    print(f"成功件数-discharge：{success_count}")
+    print(f"エラー件数-discharge：{error_count}")
+
+    #logger.info("StayHistory処理開始")
 
     api_df = DataManipulationService.load_api_data()
 
@@ -102,7 +126,7 @@ def main():
 
     patient_df = PatientService.load_patient_df()
 
-    print(f"取得件数: {len(patient_df)}")
+    print(f"取得件数-patient: {len(patient_df)}")
 
     patient_df.to_csv(
         "debug_patient_df.csv",
@@ -110,9 +134,15 @@ def main():
         encoding="utf-8-sig",
     )
 
+    print("hospitalized_at dtype:", patient_df["hospitalized_at"].dtype)
+    print("hospitalized_at value:", repr(patient_df["hospitalized_at"].iloc[0]))
+    print("TIME_ZONE:", settings.TIME_ZONE)
+    print("現在のタイムゾーン:", timezone.get_current_timezone())
+
     merged_df = DataManipulationService.merge_api_patient_data(api_df, patient_df)
 
-    print(f"取得件数: {len(merged_df)}")
+    print(f"取得件数-merged: {len(merged_df)}")
+    print(merged_df["_merge"].value_counts(dropna=False))
 
     merged_df.to_csv(
         "debug_merged_df.csv",

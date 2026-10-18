@@ -11,43 +11,6 @@ class PatientService:
     @staticmethod
     def save_patient(row):
 
-        discharged_at = None
-
-        discharged_date = row["dischargedAt"]
-        discharged_time = row["dischargedTime"]
-
-        if pd.notna(discharged_date):
-            if pd.notna(discharged_time):
-                time_str = str(int(discharged_time)).zfill(6)
-                
-                discharged_at = pd.to_datetime(
-                    f"{pd.Timestamp(discharged_date).strftime('%Y%m%d')}{time_str}",
-                    format="%Y%m%d%H%M%S",
-                    errors="coerce",
-                )
-                
-                if pd.isna(discharged_at):
-                    discharged_at = None
-                
-            else:
-                discharged_at = discharged_date.replace(
-                    hour=12,
-                    minute=0,
-                    second=0,
-                )
-
-            if pd.notna(discharged_at):
-                discharged_at = discharged_at.to_pydatetime()
-                
-                if timezone.is_naive(discharged_at):
-                    discharged_at = timezone.make_aware(
-                        discharged_at,
-                        timezone.get_current_timezone(),
-                    )
-
-            else:
-                discharged_at = None
-
         hospitalized_at = row["hospitalizedAt"]
         
         if pd.notna(hospitalized_at):
@@ -70,17 +33,67 @@ class PatientService:
             },
         )
 
-        if discharged_at is not None and pd.notna(discharged_at):
-            patient.discharged_at = discharged_at
-            patient.save(update_fields=["discharged_at", "updated_at"])
+        return patient
 
-            print(
-                f"患者ID={patient.patient_id}, "
-                f"退院日={discharged_date!r}, "
-                f"退院時刻={discharged_time!r}, "
-                f"退院日時={patient.discharged_at!r}, "
-                f"退院時刻型={type(patient.discharged_at).__name__}"
+    @staticmethod
+    def save_discharge(row):
+        
+        patient_id = row["patient_id"]
+        discharge_date = row["dischargeAt"]
+        discharge_time = row["dischargeTime"]
+        
+        if pd.isna(patient_id) or pd.isna(discharge_date):
+            return None
+        
+        discharged_at = None
+        
+        if pd.notna(discharge_time):
+            time_str = str(int(discharge_time)).zfill(6)
+            
+            discharged_at = pd.to_datetime(
+                f"{pd.Timestamp(discharge_date).strftime('%Y%m%d')}{time_str}",
+                format="%Y%m%d%H%M%S",
+                errors="coerce",
             )
+            
+            if pd.isna(discharged_at):
+                return None
+            
+        else:
+            discharged_at = pd.Timestamp(
+                discharge_date
+            ).replace(
+                hour=12,
+                minute=0,
+                second=0,
+            )
+
+        if timezone.is_naive(discharged_at):
+            discharged_at = timezone.make_aware(
+                discharged_at,
+                timezone.get_current_timezone(),
+            )
+
+        queryset = Patient.objects.filter(
+            patient_id=patient_id,
+            discharged_at__isnull=True,
+        ).order_by("-hospitalized_at")
+        
+        count = queryset.count()
+        
+        if count == 0:
+            return None
+        
+
+        patient = queryset.first()
+
+        if patient is None:
+            return None
+
+        patient.discharged_at = discharged_at
+        patient.save(
+            update_fields=["discharged_at", "updated_at"]
+        )
 
         return patient
 

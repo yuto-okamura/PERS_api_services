@@ -428,7 +428,9 @@ class DataManipulationService:
             "patient": {
                 "id": row["patient_id_api"],
                 "fullNameKana": row["patient_name_kana"],
-                "birthDate": row["birth_date"],
+                "birthDate": DataManipulationService.to_json_value(
+                    row["birth_date"],
+                ),
             },
             "events": events,
         }
@@ -528,12 +530,15 @@ class DataManipulationService:
         if pd.isna(value):
             return None
         
-        if isinstance(value, (pd.Timestamp, datetime, date)):
+        if isinstance(value, (pd.Timestamp, datetime)):
             if isinstance(value, (pd.Timestamp, datetime)):
                 if timezone.is_aware(value):
                     value = timezone.localtime(value)
                 
             return value.strftime("%Y-%m-%d %H:%M:%S")
+        
+        if isinstance(value, date):
+            return value.strftime("%Y-%m-%d")
         
         return value
 

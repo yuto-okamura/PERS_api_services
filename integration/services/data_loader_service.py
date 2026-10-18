@@ -426,7 +426,7 @@ class DataManipulationService:
                 "name": current_stay.bed.bed_no,                
             } if current_stay is not None else None,
             "patient": {
-                "id": row["patient_id"],
+                "id": row["patient_id_api"],
                 "fullNameKana": row["patient_name_kana"],
                 "birthDate": row["birth_date"],
             },

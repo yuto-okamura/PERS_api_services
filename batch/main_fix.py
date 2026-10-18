@@ -150,10 +150,9 @@ def main():
         encoding="utf-8-sig",
     )
 
-    test_order_code = "1325100384313"
     test_df = merged_df[
-        merged_df["orderCode"] == test_order_code
-    ]
+        merged_df["_merge"] == "both"
+    ].head(10)
 
     print(f"PUTテスト対象件数：{len(test_df)}")
 

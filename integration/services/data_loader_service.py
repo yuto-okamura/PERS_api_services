@@ -522,6 +522,10 @@ class DataManipulationService:
             return None
         
         if isinstance(value, (pd.Timestamp, datetime, date)):
+            if isinstance(value, (pd.Timestamp, datetime)):
+                if timezone.is_aware(value):
+                    value = timezone.localtime(value)
+                
             return value.strftime("%Y-%m-%d %H:%M:%S")
         
         return value

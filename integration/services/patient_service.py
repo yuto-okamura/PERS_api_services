@@ -39,8 +39,8 @@ class PatientService:
     def save_discharge(row):
         
         patient_id = row["patient_id"]
-        discharge_date = row["dischargeAt"]
-        discharge_time = row["dischargeTime"]
+        discharge_date = row["dischargedAt"]
+        discharge_time = row["dischargedTime"]
         
         if pd.isna(patient_id) or pd.isna(discharge_date):
             return None

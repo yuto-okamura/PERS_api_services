@@ -203,15 +203,21 @@ class DataManipulationService:
             how="left",
         )
 
-        patient_df["admission_id"] = patient_df.apply(
-            DataManipulationService.set_admission_id,
-            axis=1,
-        )
-
         patient_df["patient_id"] = (
             patient_df["patient_id"]
             .astype("string")
             .str.zfill(10)
+        )
+
+        patient_df["hospitalizedAt"] = pd.to_datetime(
+            patient_df["hospitalizedAt"],
+            format="%Y%m%d",
+            errors="coerce",
+        )
+
+        patient_df["admission_id"] = patient_df.apply(
+            DataManipulationService.set_admission_id,
+            axis=1,
         )
 
         patient_df["birthDate"] = pd.to_datetime(
@@ -219,12 +225,6 @@ class DataManipulationService:
             format="%Y%m%d",
             errors="coerce",
         ).dt.date
-        
-        patient_df["hospitalizedAt"] = pd.to_datetime(
-            patient_df["hospitalizedAt"],
-            format="%Y%m%d",
-            errors="coerce",
-        )
 
         patient_df["stayed_at"] = stayed_at
 

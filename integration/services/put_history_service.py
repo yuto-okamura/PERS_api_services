@@ -107,7 +107,7 @@ class PutHistoryService:
         return PutHistory.objects.create(
             put_type=put_type,
             user=None,
-            patient_id=row["patient_id"],
+            patient_id=row["patient_id_api"],
             patient_name=row["patient_fullName"],
             patient_name_kana=row["patient_fullNameKana"],
             order_code=order_code,

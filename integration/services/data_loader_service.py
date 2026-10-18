@@ -414,16 +414,16 @@ class DataManipulationService:
                 row["discharged_at"],
             ),
             "ward": {
-                "id": DataManipulationService.to_json_value(current_stay["ward_id"]),
-                "name": DataManipulationService.to_json_value(current_stay["ward_name"]),
+                "id": current_stay.ward_id,
+                "name": current_stay.ward.name,
             } if current_stay is not None else None,
             "room": {
-                "id": DataManipulationService.to_json_value(current_stay["room_id"]),
-                "name": DataManipulationService.to_json_value(current_stay["room_name"]),                
+                "id": current_stay.room_id,
+                "name": current_stay.room.name,                
             } if current_stay is not None else None,
             "bed": {
-                "id": DataManipulationService.to_json_value(current_stay["bed_id"]),
-                "name": DataManipulationService.to_json_value(current_stay["bed_no"]),                
+                "id": current_stay.bed_id,
+                "name": current_stay.bed.bed_no,                
             } if current_stay is not None else None,
             "patient": {
                 "id": row["patient_id"],
@@ -473,6 +473,13 @@ class DataManipulationService:
         admission_id = f"{row['patient_id']}-{hospitalized_at:%Y%m%d}"
 
         return admission_id
+
+    @staticmethod
+    def set_status(row):
+        if pd.notna(row["discharged_at"]):
+            return "discharged"
+        
+        return "hospitalized"
 
     @staticmethod
     def conf_status(row):

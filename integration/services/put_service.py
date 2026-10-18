@@ -1,6 +1,8 @@
 import requests
 import pandas as pd
 import logging
+import json
+from pathlib import Path
 
 from integration.models import PutHistory
 from integration.services.data_loader_service import DataManipulationService
@@ -155,3 +157,118 @@ class PutService:
         )
 
         return response
+
+    @staticmethod
+    def put_execute(
+        *,
+        row,
+        put_type=PutHistory.PutType.AUTO,
+        user=None,
+    ):
+        patient_id = row["patient_id"]
+        order_code = row["orderCode"]
+        patient_name = row["patient_name"]
+
+
+        if row["_merge"] != "both":
+            """
+            logger.warning(
+                "PUT対象外：APIリクエストとEMRデータの不一致 "
+                "patient_id=%s, order_code=%s",
+                patient_id,
+                order_code,
+            )
+
+            PutHistoryService.save_put_excluded(
+                row=row,
+                order_code=order_code,
+                error_message=(
+                    "APIリクエストとEMRデータの不一致"
+                ),
+                put_type=put_type,
+                user=user,
+            )
+            """
+            return None
+
+        status = DataManipulationService.set_status(row)
+
+        if status is None:
+            """
+            logger.warning(
+                "PUT対象外：status判定不可 "
+                "patient_id=%s, order_code=%s",
+                patient_id,
+                order_code,
+            )            
+
+            PutHistoryService.save_put_excluded(
+                row=row,
+                order_code=order_code,
+                error_message=(
+                    "APIリクエストとEMRデータの不一致"
+                ),
+                put_type=put_type,
+                user=user,
+            )
+            """
+            return None
+
+        admission_id = row["admission_id"]
+        
+        events = StayHistoryService.create_events(admission_id)
+        
+        current_stay = StayHistoryService.get_current_stay(
+            admission_id=admission_id,
+            discharged_at=row["discharged_at"],
+        )
+
+        json_data = DataManipulationService.create_json_request(
+            row=row,
+            admission_id=admission_id,
+            status=status,
+            current_stay=current_stay,
+            events=events,
+        )
+
+        output_dir = Path("integration") / "output" / "json"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        output_path = output_dir / f"{order_code}.json"
+        
+        with output_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                json_data,
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
+
+        """
+        if json_data is None:
+            
+            logger.error(
+                f"json_data作成対象データなし"
+                f"patient_id={patient_id}, "
+                f"order_code={order_code}"
+            )
+            PutHistoryService.save_put_excluded(
+                row=row,
+                order_code=order_code,
+                error_message="PUT用データを作成できないためPUT対象外",
+                put_type=put_type,
+                user=user,
+            )
+            return None
+
+        response = PutService.execute(
+            put_type=put_type,
+            user=user,
+            json_data=json_data,
+            order_code=order_code,
+            patient_name=patient_name,
+        )
+
+        return response
+        """
+        return None

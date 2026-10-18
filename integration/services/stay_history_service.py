@@ -86,6 +86,22 @@ class StayHistoryService:
         return None
 
     @staticmethod
+    def get_current_stay(admission_id, discharged_at):
+
+        if pd.notna(discharged_at):
+            return None
+
+        stay = (
+            StayHistory.objects
+            .filter(admission_id=admission_id)
+            .select_related("ward", "room", "bed")
+            .order_by("-stayed_at")
+            .first()
+        )
+        
+        return stay
+
+    @staticmethod
     def create_events(admission_id):
         
         stays = (

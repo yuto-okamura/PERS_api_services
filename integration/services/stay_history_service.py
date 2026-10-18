@@ -16,15 +16,7 @@ class StayHistoryService:
     
     @staticmethod
     def save_stay_history(row, admission_id):
-        print(
-            "StayHistory登録: admission_id=%s, stayed_at=%s, "
-            "ward_id=%s, room_id=%s, bed_id=%s",
-            admission_id,
-            row["stayed_at"],
-            row["ward_id"],
-            row["room_id"],
-            row["bed_id"],
-        )
+
         StayHistory.objects.update_or_create(
             admission_id=admission_id,
             stayed_at=row["stayed_at"],

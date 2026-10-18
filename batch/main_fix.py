@@ -18,11 +18,11 @@ from integration.services.stay_history_service import StayHistoryService
 from integration.services.patient_service import PatientService
 from integration.models import PutHistory
 
-#logger = logging.getLogger("batch")
+logger = logging.getLogger("batch")
 
 def main():
 
-    #logger.info("バッチ開始")
+    logger.info("バッチ開始")
 
     #データフレームの作成
 
@@ -102,7 +102,7 @@ def main():
     print(f"成功件数-discharge：{success_count}")
     print(f"エラー件数-discharge：{error_count}")
 
-    #logger.info("StayHistory処理開始")
+    logger.info("StayHistory処理開始")
 
     api_df = DataManipulationService.load_api_data()
 
@@ -115,14 +115,14 @@ def main():
     for _, row in api_df.iterrows():
         PatientService.save_api_patient(row)
 
-    #logger.info("API取得開始")
+    logger.info("API取得開始")
 
     if api_df.empty:
         #logger.info("PERS API対象データなし")
         #logger.info("バッチ終了")
         return None
 
-    #logger.info("PERS APIデータ取得")
+    logger.info("PERS APIデータ取得")
 
     patient_df = PatientService.load_patient_df()
 
@@ -133,11 +133,6 @@ def main():
         index=False,
         encoding="utf-8-sig",
     )
-
-    print("hospitalized_at dtype:", patient_df["hospitalized_at"].dtype)
-    print("hospitalized_at value:", repr(patient_df["hospitalized_at"].iloc[0]))
-    print("TIME_ZONE:", settings.TIME_ZONE)
-    print("現在のタイムゾーン:", timezone.get_current_timezone())
 
     merged_df = DataManipulationService.merge_api_patient_data(api_df, patient_df)
 
@@ -150,21 +145,13 @@ def main():
         encoding="utf-8-sig",
     )
 
-    test_df = merged_df[
-        merged_df["_merge"] == "both"
-    ].head(10)
-
-    print(f"PUTテスト対象件数：{len(test_df)}")
-
-    #for _, row in merged_df.iterrows():
-    for _, row in test_df.iterrows():
+    for _, row in merged_df.iterrows():
         PutService.put_execute(
             row=row,
             put_type=PutHistory.PutType.AUTO,
         )
         
-
-    #logger.info("バッチ終了")
+    logger.info("バッチ終了")
 
     return None
 

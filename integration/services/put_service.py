@@ -171,7 +171,7 @@ class PutService:
 
 
         if row["_merge"] != "both":
-            """
+
             logger.warning(
                 "PUT対象外：APIリクエストとEMRデータの不一致 "
                 "patient_id=%s, order_code=%s",
@@ -188,13 +188,13 @@ class PutService:
                 put_type=put_type,
                 user=user,
             )
-            """
+
             return None
 
         status = DataManipulationService.set_status(row)
 
         if status is None:
-            """
+
             logger.warning(
                 "PUT対象外：status判定不可 "
                 "patient_id=%s, order_code=%s",
@@ -211,7 +211,7 @@ class PutService:
                 put_type=put_type,
                 user=user,
             )
-            """
+
             return None
 
         admission_id = row["admission_id"]
@@ -244,7 +244,6 @@ class PutService:
                 indent=2,
             )
 
-        """
         if json_data is None:
             
             logger.error(
@@ -270,5 +269,3 @@ class PutService:
         )
 
         return response
-        """
-        return None

@@ -150,7 +150,15 @@ def main():
         encoding="utf-8-sig",
     )
 
-    for _, row in merged_df.iterrows():
+    test_order_code = "1325100384313"
+    test_df = merged_df[
+        merged_df["orderCode"] == test_order_code
+    ]
+
+    print(f"PUTテスト対象件数：{len(test_df)}")
+
+    #for _, row in merged_df.iterrows():
+    for _, row in test_df.iterrows():
         PutService.put_execute(
             row=row,
             put_type=PutHistory.PutType.AUTO,

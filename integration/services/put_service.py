@@ -165,7 +165,7 @@ class PutService:
         put_type=PutHistory.PutType.AUTO,
         user=None,
     ):
-        patient_id = row["patient_id"]
+        patient_id = row["patient_id_api"]
         order_code = row["orderCode"]
         patient_name = row["patient_name"]
 

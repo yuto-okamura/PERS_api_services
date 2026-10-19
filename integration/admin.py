@@ -163,8 +163,7 @@ class PutHistoryAdmin(admin.ModelAdmin):
         
         patient = (
             Patient.objects
-            .filter(patient_id=put_history.patient_id)
-            .order_by("-hospitalized_at")
+            .filter(order_code=put_history.order_code)
             .first()
         )
 
@@ -174,67 +173,39 @@ class PutHistoryAdmin(admin.ModelAdmin):
             )
 
         admission_id = patient.admission_id
-        
-        latest_stay = (
-            StayHistory.objects
-            .filter(admission_id=admission_id)
-            .select_related("ward", "room", "bed")
-            .order_by("-stayed_at")
-            .first()
+        discharged_at = patient.discharged_at
+
+        current_stay = StayHistoryService.get_current_stay(
+            admission_id=admission_id,
+            discharged_at=discharged_at,
         )
 
         events = StayHistoryService.create_events(admission_id)
+        
+        status = (
+            "discharged"
+            if patient.discharged_at is not None
+            else "hospitalized"
+        )
 
-        manual_json = {
-            "id": admission_id,
-            "status": "XXX",
-            "hospitalizedAt": patient.hospitalized_at.strftime(
-                "%Y-%m-%d %H:%M:%S"
-            ),
-            "dischargedAt": (
-                patient.discharged_at.strftime("%Y-%m-%d %H:%M:%S")
-                if patient.discharged_at
-                else None
-            ),
-            "ward": {
-                "id": (
-                    latest_stay.ward.id
-                    if latest_stay.ward else None
-                ),
-                "name": (
-                    latest_stay.ward.name
-                    if latest_stay.ward else None
-                ),
-            },
-            "room": {
-                "id": (
-                    latest_stay.room.id
-                    if latest_stay.room else None
-                ),
-                "name": (
-                    latest_stay.room.name
-                    if latest_stay.room else None
-                ),
-            },
-            "bed": {
-                "id": (
-                    latest_stay.bed.id
-                    if latest_stay.bed else None
-                ),
-                "name": (
-                    latest_stay.bed.bed_no
-                    if latest_stay.bed else None
-                ),
-            },
-            "patient": {
-                "id": patient.patient_id,
-                "fullNameKana": patient.patient_name_kana,
-                "birthDate": patient.birth_date,
-            },
-            "events": events,
-        }
+        patient_id = patient.patient_id
+        hospitalized_at = patient.hospitalized_at
+        patient_name_kana = patient.patient_name_kana
+        birth_date = patient.birth_date
 
-        return manual_json
+        json_data = DataManipulationService.create_json_request(
+            patient_id=patient_id,
+            admission_id=admission_id,
+            status=status,
+            hospitalized_at=hospitalized_at,
+            discharged_at=discharged_at,
+            current_stay=current_stay,
+            patient_name_kana=patient_name_kana,
+            birth_date=birth_date,
+            events=events,
+        )
+
+        return json_data
 
     def manual_put_view(self, request, object_id):
         
@@ -244,37 +215,52 @@ class PutHistoryAdmin(admin.ModelAdmin):
             messages.error(request, "対象のPUT履歴が見つかりません")
             return redirect("admin:integration_puthistory_changelist")
 
-        request_data = PutHistoryService.get_latest_successful_request(
-            admission_id=put_history.admission_id,
+        patient = (
+            Patient.objects
+            .filter(order_code=put_history.order_code)
+            .first()
         )
 
-        if request_data is None:
-            try:
-                request_data = self.create_manual_put_json(put_history)
-                
-            except ValueError as e:
-                messages.error(request, str(e))
-                return redirect(
-                    "admin:integration_puthistory_change",
-                    object_id,
-                )
-                
-            except Exception:
-                logger.exception(
-                    "JSON作成に失敗："
-                    f"patient_id={put_history.patient_id}, "
-                )
+        if patient is None:
+            messages.error(
+                request,
+                "Patientテーブルに該当患者なし"
+            )
+            return redirect(
+                "admin:integration_puthistory_change",
+                object_id,
+            )
 
-                messages.error(
-                    request,
-                    "JSON作成に失敗しました。ログを確認してください"
-                )
+        admission_id = patient.admission_id
 
-                return redirect(
-                    "admin:integration_puthistory_change",
-                    object_id,
-                )
+        try:
+            request_data = self.create_manual_put_json(put_history)
+            
+        except ValueError as e:
+            messages.error(request, str(e))
+            return redirect(
+                "admin:integration_puthistory_change",
+                object_id,
+            )
+        
+        except Exception:
+            logger.exception(
+                "手動PUT用JSON作成失敗："
+                "patient_id=%s, admission_id=%s",
+                patient.patient_id,
+                admission_id
+            )
 
+            messages.error(
+                request,
+                "JSON作成に失敗しました。"
+            )
+            
+            return redirect(
+                "admin:integration_puthistory_change",
+                object_id,
+            )            
+            
         json_text = json.dumps(
             request_data,
             ensure_ascii=False,
@@ -339,7 +325,7 @@ class PutHistoryAdmin(admin.ModelAdmin):
                             "eventsは配列形式で入力してください"
                         )
 
-                    elif json_data["id"] != put_history.admission_id:
+                    elif json_data["id"] != admission_id:
                         messages.error(
                             request,
                             "入院IDは対象レコードの入院IDから変更できません",
@@ -349,11 +335,11 @@ class PutHistoryAdmin(admin.ModelAdmin):
                         
                         try:
                             responce = PutService.execute(
+                                put_type=PutHistory.PutType.MANUAL,
+                                user=request.user,
                                 json_data=json_data,
                                 order_code=put_history.order_code,
                                 patient_name=put_history.patient_name,
-                                put_type=PutHistory.PutType.MANUAL,
-                                user=request.user,
                             )
                             
                         except Exception:
@@ -361,6 +347,11 @@ class PutHistoryAdmin(admin.ModelAdmin):
                                 "手動PUT実行中に予期しないエラーが発生："
                                 f"patient_id={put_history.patient_id}, "
                                 f"admission_id={put_history.admission_id}"
+                            )
+                            
+                            messages.error(
+                                request,
+                                "手動PUTエラー"
                             )
 
                         else:
@@ -384,6 +375,7 @@ class PutHistoryAdmin(admin.ModelAdmin):
             **self.admin_site.each_context(request),
             "title": "手動PUT",
             "put_history": put_history,
+            "patient": patient,
             "json_text": json_text,
             "opts": self.model._meta,
         }

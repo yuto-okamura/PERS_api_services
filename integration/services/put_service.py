@@ -215,19 +215,27 @@ class PutService:
             return None
 
         admission_id = row["admission_id"]
-        
+        hospitalized_at = row["hospitalized_at"]
+        discharged_at = row["discharged_at"]
+        patient_name_kana = row["fullNameKana"]
+        birth_date = row["birth_date"]
+
         events = StayHistoryService.create_events(admission_id)
         
         current_stay = StayHistoryService.get_current_stay(
             admission_id=admission_id,
-            discharged_at=row["discharged_at"],
+            discharged_at=discharged_at,
         )
 
         json_data = DataManipulationService.create_json_request(
-            row=row,
+            patient_id=patient_id,
             admission_id=admission_id,
             status=status,
+            hospitalized_at=hospitalized_at,
+            discharged_at=discharged_at,
             current_stay=current_stay,
+            patient_name_kana=patient_name_kana,
+            birth_date=birth_date,
             events=events,
         )
 

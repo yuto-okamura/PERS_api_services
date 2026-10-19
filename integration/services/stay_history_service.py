@@ -1,6 +1,14 @@
 from django.db import transaction
+from django.db.models import Exists, OuterRef
+from django.db.models.functions import TruncDate
+from django.utils import timezone
+
 import logging
-from integration.models import StayHistory
+
+from integration.models import (
+    StayHistory,
+    Patient,
+)
 from integration.services import DataManipulationService
 from masters.models import (
     Ward,
@@ -145,6 +153,39 @@ class StayHistoryService:
                 ] = False
 
         return events
+
+    @staticmethod
+    def find_missing_admission_stay_history():
+        missing_patients = []
+        
+        patients = Patient.objects.all().only(
+            "patient_id",
+            "patient_name",
+            "admission_id",
+            "hospitalized_at",
+            "discharged_at",
+        )
+
+        for patient in patients:
+            hospitalized_date = timezone.localtime(
+                patient.hospitalized_at
+            ).date()
+            
+            has_stay_history = StayHistory.objects.filter(
+                admission_id=patient.admission_id,
+                stayed_at__date=hospitalized_date,
+            ).exists()
+            
+            if not has_stay_history:
+                missing_patients.append({
+                    "patient_id": patient.patient_id,
+                    "patient_name": patient.patient_name,
+                    "admission_id": patient.admission_id,
+                    "hospitalized_at": patient.hospitalized_at,
+                    "discharged_at": patient.discharged_at,
+                })
+        
+        return missing_patients
 
 class ManualStayHistoryImportService:
     

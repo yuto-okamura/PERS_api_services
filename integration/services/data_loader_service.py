@@ -402,16 +402,27 @@ class DataManipulationService:
         return merged_df
 
     @staticmethod
-    def create_json_request(row, admission_id, status, current_stay, events):
+    def create_json_request(
+        *,
+        patient_id, 
+        admission_id, 
+        status, 
+        hospitalized_at, 
+        discharged_at, 
+        current_stay,
+        patient_name_kana,
+        birth_date, 
+        events,
+    ):
         
         data = {
             "id": admission_id,
             "status": status,
             "hospitalizedAt": DataManipulationService.to_json_value(
-                row["hospitalized_at"]
+                hospitalized_at
             ),
             "dischargedAt": DataManipulationService.to_json_value(
-                row["discharged_at"],
+                discharged_at,
             ),
             "ward": {
                 "id": current_stay.ward_id,
@@ -426,10 +437,10 @@ class DataManipulationService:
                 "name": current_stay.bed.bed_no,                
             } if current_stay is not None else None,
             "patient": {
-                "id": row["patient_id_api"],
-                "fullNameKana": row["patient_name_kana"],
+                "id": patient_id,
+                "fullNameKana": patient_name_kana,
                 "birthDate": DataManipulationService.to_json_value(
-                    row["birth_date"],
+                    birth_date,
                 ),
             },
             "events": events,

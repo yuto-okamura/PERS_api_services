@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
@@ -150,6 +151,8 @@ def main():
             row=row,
             put_type=PutHistory.PutType.AUTO,
         )
+        
+        time.sleep(1)
         
     logger.info("バッチ終了")
 

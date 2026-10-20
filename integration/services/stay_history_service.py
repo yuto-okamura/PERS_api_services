@@ -47,6 +47,9 @@ class StayHistoryService:
             return None
 
         hospitalized_at = pd.Timestamp(hospitalized_at)
+        if hospitalized_at.tzinfo is not None:
+            hospitalized_at = hospitalized_at.tz_convert("Asia/Tokyo")
+        
         service_start_date = pd.Timestamp("2026-10-01")
         admission_date = hospitalized_at.date()
 

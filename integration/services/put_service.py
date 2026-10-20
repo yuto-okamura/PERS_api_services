@@ -217,7 +217,7 @@ class PutService:
         admission_id = row["admission_id"]
         hospitalized_at = row["hospitalized_at"]
         discharged_at = row["discharged_at"]
-        patient_name_kana = row["fullNameKana"]
+        patient_name_kana = row["patient_name_kana"]
         birth_date = row["birth_date"]
 
         events = StayHistoryService.create_events(admission_id)

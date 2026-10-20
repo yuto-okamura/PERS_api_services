@@ -17,7 +17,7 @@ from integration.services.patient_service import PatientService
 
 def main():
 
-    patient_df = PatientService.load_patient_df()
+    patient_df = PatientService.load_all_patient_df()
 
     target_admission_id = "0000103275-20261019"
     

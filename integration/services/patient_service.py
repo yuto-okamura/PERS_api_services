@@ -181,4 +181,20 @@ class PatientService:
         )
 
         return pd.DataFrame.from_records(queryset)
-    
+
+    @staticmethod
+    def load_all_patient_df():
+        
+        queryset = Patient.objects.all().values(
+            "patient_id",
+            "patient_name",
+            "patient_name_kana",
+            "birth_date",
+            "admission_id",
+            "hospitalized_at",
+            "discharged_at",
+            "order_code",
+            "service_start_date",
+        )
+
+        return pd.DataFrame.from_records(queryset)

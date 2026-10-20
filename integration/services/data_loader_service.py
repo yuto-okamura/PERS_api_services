@@ -70,7 +70,10 @@ class DataManipulationService:
 
     #最新のファイルの取得
     @staticmethod
-    def get_latest_data_file(file_name):
+    def get_latest_data_file(file_name, data_dir=None):
+        if data_dir is None:
+            data_dir = DATA_DIR
+        
         files = list(DATA_DIR.glob(f"{file_name}_*.csv"))
 
         if not files:

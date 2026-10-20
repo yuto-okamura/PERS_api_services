@@ -39,14 +39,15 @@ class StayHistoryService:
         return None
 
     @staticmethod
-    def supplement_admission_history(row, admission_id):
-        hospitalized_at = row["hospitalizedAt"]
+    def supplement_admission_history(row):
+        admission_id = row["admission_id"]
+        hospitalized_at = row["hospitalized_at"]
         
-        if pd.isna(hospitalized_at):
+        if pd.isna(hospitalized_at) or pd.isna(admission_id):
             return None
 
+        hospitalized_at = pd.Timestamp(hospitalized_at)
         service_start_date = pd.Timestamp("2026-10-01")
-
         admission_date = hospitalized_at.date()
 
         if admission_date < service_start_date.date():
@@ -59,32 +60,46 @@ class StayHistoryService:
 
         if exists:
             return None
-        
+
+        next_day = admission_date + timedelta(days=1)
+
+        next_day_stay = (
+            StayHistory.objects.filter(
+                admission_id=admission_id,
+                stayed_at__date=next_day,
+            )
+            .order_by("stayed_at")
+            .first()
+        )
+
+        if next_day_stay is None:
+            return None
+
         if (
-            pd.isna(row["ward_id"])
-            or pd.isna(row["room_id"])
-            or pd.isna(row["bed_id"])
+            next_day_stay.ward_id is None
+            or next_day_stay.room_id is None
+            or next_day_stay.bed_id is None
         ):
             return None
 
         stayed_at = hospitalized_at.replace(
-            hour=12,
+            hour=23,
             minute=0,
             second=0,
             microsecond=0,
         )
 
-        StayHistory.objects.update_or_create(
+        obj, created = StayHistory.objects.update_or_create(
             admission_id=admission_id,
             stayed_at=stayed_at,
             defaults={
-                "ward_id": row["ward_id"],
-                "room_id": row["room_id"],
-                "bed_id": row["bed_id"],
+                "ward_id": next_day_stay.ward_id,
+                "room_id": next_day_stay.room_id,
+                "bed_id": next_day_stay.bed_id,
             },            
         )
 
-        return None
+        return created
 
     @staticmethod
     def get_current_stay(admission_id, discharged_at):

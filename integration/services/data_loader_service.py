@@ -164,11 +164,8 @@ class DataManipulationService:
         return emr_df
 
     @staticmethod
-    def load_emr_dataset(
-        patient_file_path=None,
-        discharge_file_path=None,
-    ):
-        
+    def load_emr_patient_data(patient_file_path=None):
+
         if patient_file_path is None:
             patient_file_path = DataManipulationService.get_latest_data_file(
                 "current_patient"
@@ -183,7 +180,7 @@ class DataManipulationService:
             minute=0,
             second=0,
             microsecond=0,            
-        )
+        )        
 
         patient_df = pd.read_csv(
             patient_file_path,
@@ -193,9 +190,9 @@ class DataManipulationService:
                 "bed_no": str,
             },
         )
-
-        master_df = DataManipulationService.create_master_df()
         
+        master_df = DataManipulationService.create_master_df()
+
         patient_df = patient_df.merge(
             master_df,
             left_on=["ward_code", "room_code", "bed_no"],
@@ -227,12 +224,17 @@ class DataManipulationService:
         ).dt.date
 
         patient_df["stayed_at"] = stayed_at
+        
+        return patient_df
+
+    @staticmethod
+    def load_emr_discharge_data(discharge_file_path=None):
 
         if discharge_file_path is None:
             discharge_file_path = DataManipulationService.get_latest_data_file(
                 "discharge"
             )
-        
+
         try:
             discharge_df = pd.read_csv(discharge_file_path)
 
@@ -250,6 +252,22 @@ class DataManipulationService:
         discharge_df["dischargedAt"] = pd.to_datetime(
             discharge_df["dischargedAt"],
             errors="coerce",
+        )
+        
+        return discharge_df
+
+    @staticmethod
+    def load_emr_dataset(
+        patient_file_path=None,
+        discharge_file_path=None,
+    ):
+
+        patient_df = DataManipulationService.load_emr_patient_data(
+            patient_file_path=patient_file_path,
+        )
+
+        discharge_df = DataManipulationService.load_emr_discharge_data(
+            discharge_file_path=discharge_file_path,
         )
         
         return patient_df, discharge_df    

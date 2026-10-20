@@ -33,7 +33,7 @@ class PatientService:
             },
         )
 
-        return patient
+        return created
 
     @staticmethod
     def save_discharge(row):
@@ -84,6 +84,15 @@ class PatientService:
         if count == 0:
             return None
         
+        if count > 1:
+            logger.info(
+                "退院日登録をスキップ：未退院レコードが複数存在します "
+                "patient_id=%s, 対象件数=%s",
+                patient_id,
+                count,
+            )
+
+            return None
 
         patient = queryset.first()
 

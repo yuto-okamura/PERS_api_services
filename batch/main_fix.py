@@ -46,13 +46,21 @@ def main():
         encoding="utf-8-sig",
     )
 
+    create_count = 0
+    existing_count = 0
     success_count = 0
     error_count = 0
 
     for _, row in emr_patient_df.iterrows():
         try:
-            PatientService.save_patient(row)
+            created = PatientService.save_patient(row)
+
             success_count += 1
+
+            if created:
+                create_count += 1
+            else:
+                existing_count += 1
             
         except Exception as e:
             error_count += 1
@@ -60,6 +68,13 @@ def main():
                 f"[ERROR] patient_id={row.get('patient_id')}, "
                 f"error={e}"
             )
+
+    logger.info(
+        "Patient取込結果：新規=%s件、既存=%s件、エラー=%s件、",
+        create_count,
+        existing_count,
+        error_count,
+    )
 
     print(f"成功件数-patient：{success_count}")
     print(f"エラー件数-patient：{error_count}")

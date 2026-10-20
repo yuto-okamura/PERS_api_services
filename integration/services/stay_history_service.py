@@ -2,6 +2,7 @@ from django.db import transaction
 from django.db.models import Exists, OuterRef
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from datetime import timedelta
 
 import logging
 
@@ -185,6 +186,51 @@ class StayHistoryService:
                     "discharged_at": patient.discharged_at,
                 })
         
+        return missing_patients
+
+    @staticmethod
+    def find_missing_discharge_candidates(days=3):
+        threshold = timezone.now() - timedelta(days=days)
+        
+        patients = (
+            Patient.objects
+            .filter(
+                discharged_at__isnull=True,
+            )
+            .values(
+                "patient_id",
+                "patient_name",
+                "admission_id",
+                "hospitalized_at",
+                "discharged_at",
+            )
+        )
+        
+        missing_patients = []
+        
+        for patient in patients:
+            latest_stay = (
+                StayHistory.objects
+                .filter(admission_id=patient["admission_id"])
+                .order_by("-stayed_at")
+                .values_list("stayed_at", flat=True)
+                .first()
+            )
+
+            if latest_stay is None:
+                missing_patients.append({
+                    **patient,
+                    "latest_stayed_at": None,
+                    "reason": "StayHistoryなし",
+                })
+
+            elif latest_stay < threshold:
+                missing_patients.append({
+                    **patient,
+                    "latest_stayed_at": latest_stay,
+                    "reason": f"最終StayHistoryから{days}日以上経過",                    
+                })
+
         return missing_patients
 
 class ManualStayHistoryImportService:

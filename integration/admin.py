@@ -1,5 +1,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from datetime import datetime
 
 from typing import Any
 from django import forms
@@ -13,6 +14,7 @@ from django.utils.safestring import mark_safe
 from django.urls import path, reverse
 from django.shortcuts import redirect
 
+import re
 import json
 import logging
 
@@ -27,6 +29,7 @@ from integration.services.put_service import PutService
 from integration.services.data_loader_service import DataManipulationService
 from integration.services.stay_history_service import StayHistoryService
 from integration.services.put_history_service import PutHistoryService
+from integration.services.patient_service import PatientService
 
 logger = logging.getLogger("manual_put")
 csv_import_logger = logging.getLogger("csv_import")
@@ -478,29 +481,60 @@ class StayHistoryAdmin(admin.ModelAdmin):
         "admission_id",
     )
 
-class CsvImportForm(forms.Form):
+class PatientCsvImportForm(forms.Form):
     #Csv取込専用フォーム
     
     patient_file = forms.FileField(
         label="対象患者Csv",
-        help_text="対象のcurrent_patient_*.csvファイルを選択してください",
-    )
-
-    discharge_file = forms.FileField(
-        label="対象退院データCsv",
-        help_text="対象のdischarge_*.csvファイルを選択してください",
+        help_text=(
+            "末尾「_YYYYmmddHHMMSS.csv」のcsvファイルを選択してください<br>"
+            "例：current_patient_20261001120000.csv<br>"
+            "【必須カラム】 patient_id, fullName, fullNameKana, birthDate, hospitalizedAt, ward_code, room_code, bed_no"
+        ),
+        widget=forms.ClearableFileInput(attrs={"accept": ".csv"})
     )
 
     def clean_patient_file(self):
         file = self.cleaned_data["patient_file"]
+
+        filename = file.name
         
-        if not file.name.lower().endswith(".csv"):
+        pattern = r".*_(\d{14})\.csv"
+        
+        match = re.fullmatch(pattern, filename, re.IGNORECASE)
+        
+        if not match:
             raise forms.ValidationError(
-                "対象患者CsvはCsvファイルを指定してください"
+                "ファイル名の末尾を「_YYYYmmddHHMMSS.csv」の形式にしてください"
             )
             
+        timestamp = match.group(1)
+        
+        try:
+            datetime.strptime(timestamp, "%Y%m%d%H%M%S")
+        except ValueError:
+            raise forms.ValidationError(
+                "ファイル名の日時が正しくありません"
+            )
+
         return file
+
+class DischargeCsvImportForm(forms.Form):
+    #Csv取込専用フォーム
     
+    discharge_file = forms.FileField(
+        label="対象退院データCsv",
+        help_text=(
+            "対象のcsvファイルを選択してください<br>"
+            "【必須カラム】patient_id, dischargedAt, dischargedTime<br>"
+            "【書式】<br>"
+            " ・dischargedAt：退院日（YYYYmmdd または日付形式）<br>"
+            " ・dischargedTime：退院時刻（HHMMSS、例093000）<br>"
+            " ※ dischagedTimeがない場合、退院時刻は12:00:00として登録されます"
+        ),
+        widget=forms.ClearableFileInput(attrs={"accept": ".csv"})
+    )
+   
     def clean_discharge_file(self):
         file = self.cleaned_data["discharge_file"]
         
@@ -539,71 +573,125 @@ class ImportHistoryAdmin(admin.ModelAdmin):
         )
 
     def csv_import_view(self, request):
-        
+
+        patient_form = PatientCsvImportForm()
+        discharge_form = DischargeCsvImportForm()
+
         if request.method == "POST":
-            form = CsvImportForm(request.POST, request.FILES)
+            
+            import_type = request.POST.get("import_type")
+            
+            if import_type == "patient":
+                patient_form = PatientCsvImportForm(request.POST, request.FILES)
+                
+                if patient_form.is_valid():
 
-            if form.is_valid():
-                try:
-                    patient_file = form.cleaned_data["patient_file"]
-                    discharge_file = form.cleaned_data["discharge_file"]
-                    
-                    with TemporaryDirectory() as temp_dir:
-                        temp_dir = Path(temp_dir)
+                    try:
+                        patient_file = patient_form.cleaned_data["patient_file"]
                         
-                        patient_path = temp_dir / patient_file.name
-                        discharge_path = temp_dir / discharge_file.name
-                        
-                        with patient_path.open("wb") as f:
-                            for chunk in patient_file.chunks():
-                                f.write(chunk)
-                                
-                        with discharge_path.open("wb") as f:
-                            for chunk in discharge_file.chunks():
-                                f.write(chunk)
-                        
-                        all_patient_df = (
-                            DataManipulationService.create_all_patient_df(
-                                patient_file_path=patient_path,
-                                discharge_file_path=discharge_path,
-                            )
-                        )
-
-                        for _, row in all_patient_df.iterrows():
-                            StayHistoryService.save_stay_history(
-                                row,
-                                row["admission_id"],
+                        with TemporaryDirectory() as temp_dir:
+                            temp_dir = Path(temp_dir)
+                            
+                            patient_path = temp_dir / patient_file.name
+                            
+                            with patient_path.open("wb") as f:
+                                for chunk in patient_file.chunks():
+                                    f.write(chunk)
+                            
+                            patient_df = (
+                                DataManipulationService.load_emr_patient_data(
+                                    patient_file_path=patient_path,
+                                )
                             )
 
-                    self.message_user(
-                        request,
-                        (
-                            "Csv取込処理が完了しました。"
-                            f"対象件数：{len(all_patient_df)}件"
-                        ),
-                    )
+                            for _, row in patient_df.iterrows():
+                                PatientService.save_patient(
+                                    row,
+                                )
 
-                    return HttpResponseRedirect(
-                        reverse(
-                            "admin:integration_importhistory_csv_import"
+                            for _, row in patient_df.iterrows():
+                                StayHistoryService.save_stay_history(
+                                    row,
+                                    row["admission_id"],
+                                )
+
+                        self.message_user(
+                            request,
+                            (
+                                "Csv取込処理が完了しました。"
+                                f"対象件数：{len(patient_df)}件"
+                            ),
                         )
-                    )
-                except Exception:
-                    csv_import_logger.exception("Csv取込処理に失敗しました")
-                    
-                    self.message_user(
-                        request,
-                        "Csv取込処理に失敗しました。ログを確認してください",
-                        level=messages.ERROR,
-                    )
 
-        else:
-            form = CsvImportForm()
+                        return HttpResponseRedirect(
+                            reverse(
+                                "admin:integration_importhistory_csv_import"
+                            )
+                        )
+                    except Exception:
+                        csv_import_logger.exception("Csv取込処理に失敗しました")
+                        
+                        self.message_user(
+                            request,
+                            "Csv取込処理に失敗しました。ログを確認してください",
+                            level=messages.ERROR,
+                        )
+
+            elif import_type == "discharge":
+                discharge_form = DischargeCsvImportForm(request.POST, request.FILES)
+
+                if discharge_form.is_valid():
+
+                    try:
+                        discharge_file = discharge_form.cleaned_data["discharge_file"]
+                        
+                        with TemporaryDirectory() as temp_dir:
+                            temp_dir = Path(temp_dir)
+                            
+                            discharge_path = temp_dir / discharge_file.name
+                                                               
+                            with discharge_path.open("wb") as f:
+                                for chunk in discharge_file.chunks():
+                                    f.write(chunk)
+                            
+                            discharge_df = (
+                                DataManipulationService.load_emr_discharge_data(
+                                    discharge_file_path=discharge_path,
+                                )
+                            )
+
+                            for _, row in discharge_df.iterrows():
+                                PatientService.save_discharge(
+                                    row,
+                                )
+
+                        self.message_user(
+                            request,
+                            (
+                                "Csv取込処理が完了しました。"
+                                f"対象件数：{len(discharge_df)}件"
+                            ),
+                        )
+
+                        return HttpResponseRedirect(
+                            reverse(
+                                "admin:integration_importhistory_csv_import"
+                            )
+                        )
+                    except Exception:
+                        csv_import_logger.exception("Csv取込処理に失敗しました")
+                        
+                        self.message_user(
+                            request,
+                            "Csv取込処理に失敗しました。ログを確認してください",
+                            level=messages.ERROR,
+                        )       
             
         context = {
             **self.admin_site.each_context(request),
             "title": "Csv取込",
-            "form": form,
+            "patient_form": patient_form,
+            "discharge_form": discharge_form,
             "opts": self.model._meta,
         }
 

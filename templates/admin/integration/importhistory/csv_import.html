@@ -8,59 +8,92 @@
 
 {% block content %}
 
-	<form method="post" enctype="multipart/form-data" class="csv-import-form">
-		{% csrf_token %}
+	<div class="csv-import-container">
 
-		<div class="csv-import-field">
-				<label for="{{ form.patient_file.id_for_label }}" class="csv-import-label">
-						{{ form.patient_file.label }}
-				</label>
+		<!-- 患者データ取り込み -->
+		<section class="csv-import-section">
+			<h2>患者データ取り込み</h2>
 
-				<div class="csv-import-input">
-						{{ form.patient_file }}
+			<form method="post" enctype="multipart/form-data" class="csv-import-form">
+				{% csrf_token %}
 
-						{% if form.patient_file.help_text %}
-								<p class="csv-import-help">
-										{{ form.patient_file.help_text }}
-								</p>
-						{% endif %}
+				<div class="csv-import-field">
+						<label for="{{ patient_form.patient_file.id_for_label }}" class="csv-import-label">
+								{{ patient_form.patient_file.label }}
+						</label>
 
-						{% for error in form.patient_file.errors %}
-								<p class="errornote">{{ error }}</p>
-						{% endfor %}
+						<div class="csv-import-input">
+								{{ patient_form.patient_file }}
+
+								{% if patient_form.patient_file.help_text %}
+										<p class="csv-import-help">
+												{{ patient_form.patient_file.help_text|safe }}
+										</p>
+								{% endif %}
+
+								{% for error in patient_form.patient_file.errors %}
+										<p class="errornote">{{ error }}</p>
+								{% endfor %}
+						</div>
 				</div>
-		</div>
 
-		<div class="csv-import-field">
-				<label for="{{ form.discharge_file.id_for_label }}" class="csv-import-label">
-						{{ form.discharge_file.label }}
-				</label>
+				{% if patient_form.non_field_errors %}
+					<div class="errornote">
+						{{ patient_form.non_field_errors }}
+					</div>
+				{% endif %}
 
-				<div class="csv-import-input">
-						{{ form.discharge_file }}
-
-						{% if form.discharge_file.help_text %}
-								<p class="csv-import-help">
-										{{ form.discharge_file.help_text }}
-								</p>
-						{% endif %}
-
-						{% for error in form.discharge_file.errors %}
-								<p class="errornote">{{ error }}</p>
-						{% endfor %}
+				<div class="csv-import-actions">
+						<button type="submit" name="import_type" value="patient" class="default">
+							患者データ取り込み
+						</button>
 				</div>
-		</div>
+				
+			</form>
 
-		{% if form.non_field_errors %}
-				<div class="errornote">
-						{{ form.non_field_errors }}
+		</section>
+
+		<!-- 退院データ取り込み -->
+		<section class="csv-import-section">
+			<h2>退院データ取り込み</h2>
+
+			<form method="post" enctype="multipart/form-data" class="csv-import-form">
+				{% csrf_token %}
+
+				<div class="csv-import-field">
+					<label for="{{ discharge_form.discharge_file.id_for_label }}" class="csv-import-label">
+							{{ discharge_form.discharge_file.label }}
+					</label>
+
+					<div class="csv-import-input">
+							{{ discharge_form.discharge_file }}
+
+							{% if discharge_form.discharge_file.help_text %}
+									<p class="csv-import-help">
+											{{ discharge_form.discharge_file.help_text|safe }}
+									</p>
+							{% endif %}
+
+							{% for error in discharge_form.discharge_file.errors %}
+									<p class="errornote">{{ error }}</p>
+							{% endfor %}
+					</div>
 				</div>
-		{% endif %}
 
-		<div class="csv-import-actions">
-				<input type="submit" value="取込実行" class="default">
-		</div>
+				{% if discharge_form.non_field_errors %}
+						<div class="errornote">
+								{{ discharge_form.non_field_errors }}
+						</div>
+				{% endif %}
 
-	</form>
+				<div class="csv-import-actions">
+					<button type="submit" name="import_type" value="discharge" class="default">
+						退院データ取り込み
+					</button>
+				</div>
 
+			</form>
+		</section>
+
+	</div>
 {% endblock %}

@@ -59,7 +59,7 @@ class BackupService:
             )
             
             logger.info(
-                "S3バックアップアップロード完了：s3：//%s//%s",
+                "S3バックアップアップロード完了：s3://%s/%s",
                 BackupService.S3_BUCKET_NAME,
                 s3_key,
             )

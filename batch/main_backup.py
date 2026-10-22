@@ -15,7 +15,7 @@ from integration.services.backup_service import BackupService
 logger = logging.getLogger("batch")
 
 def main():
-    logging.info("SQLiteバックアップバッチ開始")
+    logger.info("SQLiteバックアップバッチ開始")
     
     try:
         s3_key = BackupService.create_and_upload_backup()

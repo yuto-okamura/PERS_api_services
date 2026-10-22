@@ -61,6 +61,13 @@ class CustomUserAdmin(AuditAdminMixin, UserAdmin):
                 'first_name',
             )
         }),
+        ('権限設定', {
+            'fields': (
+                'is_staff',
+                'is_superuser',
+            )
+            
+        }),
     )
 
     #変更のフィールド
@@ -74,5 +81,12 @@ class CustomUserAdmin(AuditAdminMixin, UserAdmin):
                 'last_name_kana',
                 'first_name_kana',
             )
+        }),
+        ('権限設定', {
+            'fields': (
+                'is_staff',
+                'is_superuser',
+            )
+            
         }),
     )

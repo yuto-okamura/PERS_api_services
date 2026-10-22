@@ -1,8 +1,8 @@
 import logging
 import sqlite3
 import tempfile
-from datetime import datetime
 from pathlib import Path
+from contextlib import closing
 
 import boto3
 from django.conf import settings
@@ -42,7 +42,7 @@ class BackupService:
                 temp_path = Path(temp_file.name)
 
             with sqlite3.connect(db_path) as source_conn:
-                with sqlite3.connect(temp_path) as backup_conn:
+                with closing(sqlite3.connect(temp_path)) as backup_conn:
                     source_conn.backup(backup_conn)
                     
             logger.info("SQLiteバックアップ作成完了")

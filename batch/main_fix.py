@@ -31,20 +31,7 @@ def main():
         DataManipulationService.load_emr_dataset()
     )
 
-    print(f"emrPatient-取得件数: {len(emr_patient_df)}")
-    print(f"discharge-取得件数: {len(discharge_df)}")
-
-    emr_patient_df.to_csv(
-        "debug_emr_patient.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
-
-    discharge_df.to_csv(
-        "debug_discharge.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
+    logger.info("Patient処理開始")
 
     create_count = 0
     existing_count = 0
@@ -64,7 +51,7 @@ def main():
             
         except Exception as e:
             error_count += 1
-            print(
+            logger.info(
                 f"[ERROR] patient_id={row.get('patient_id')}, "
                 f"error={e}"
             )
@@ -76,8 +63,7 @@ def main():
         error_count,
     )
 
-    print(f"成功件数-patient：{success_count}")
-    print(f"エラー件数-patient：{error_count}")
+    logger.info("StayHistory処理開始")
 
     success_count = 0
     error_count = 0
@@ -92,13 +78,18 @@ def main():
             
         except Exception as e:
             error_count += 1
-            print(
-                f"[ERROR] patient_id={row.get('patient_id')}, "
-                f"error={e}"
-            )            
+            logger.exception(
+                "StayHistory取り込みエラー：patient_id=%s",
+                row.get("patient_id"),
+            )
 
-    print(f"成功件数-stay：{success_count}")
-    print(f"エラー件数-stay：{error_count}")
+    logger.info(
+        "StayHistory取込結果：成功=%s件、エラー：%s",
+        success_count,
+        error_count,
+    )
+
+    logger.info("退院情報取得処理開始")
 
     success_count = 0
     error_count = 0
@@ -110,55 +101,36 @@ def main():
             
         except Exception as e:
             error_count += 1
-            print(
-                f"[ERROR] patient_id={row.get('patient_id')}, "
-                f"error={e}"
+            logger.exception(
+                "退院情報取り込みエラー：patient_id=%s",
+                row.get("patient_id"),
             )
 
-    print(f"成功件数-discharge：{success_count}")
-    print(f"エラー件数-discharge：{error_count}")
+    logger.info(
+        "退院情報取込結果：成功%s件、エラー%s件",
+        success_count,
+        error_count,
+    )
 
-    logger.info("StayHistory処理開始")
+    logger.info("API取得開始")
 
     api_df = DataManipulationService.load_api_data()
-
-    api_df.to_csv(
-        "debug_api_df.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
 
     for _, row in api_df.iterrows():
         PatientService.save_api_patient(row)
 
-    logger.info("API取得開始")
-
     if api_df.empty:
-        #logger.info("PERS API対象データなし")
-        #logger.info("バッチ終了")
+        logger.info("PERS API対象データなし")
+        logger.info("バッチ終了")
         return None
-
-    logger.info("PERS APIデータ取得")
 
     patient_df = PatientService.load_patient_df()
 
-    print(f"取得件数-patient: {len(patient_df)}")
-
-    patient_df.to_csv(
-        "debug_patient_df.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
-
     merged_df = DataManipulationService.merge_api_patient_data(api_df, patient_df)
 
-    print(f"取得件数-merged: {len(merged_df)}")
-    print(merged_df["_merge"].value_counts(dropna=False))
-
-    merged_df.to_csv(
-        "debug_merged_df.csv",
-        index=False,
-        encoding="utf-8-sig",
+    logger.info(
+        "マージ結果：%s",
+        merged_df['_merge'].value_counts(dropna=False).to_dict(),
     )
 
     for _, row in merged_df.iterrows():

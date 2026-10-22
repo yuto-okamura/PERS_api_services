@@ -39,6 +39,10 @@ class PersApiService:
             timeout=30,
         )
 
+        print("APIステータスコード：", response.status_code)
+        print("APIレスポンスヘッダー：", response.headers)
+        print("APIレスポンス本文", response.text[:1000])
+
         response.raise_for_status()
         
         return response.json()

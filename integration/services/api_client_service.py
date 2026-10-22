@@ -1,5 +1,7 @@
 import boto3
 import requests
+import logging
+
 
 HOST_NAME = "medical-system.perspay.jp"
 HOSPITAL_CODE = "JozjJWE21nqke7KYpBQO0DVbJ67bM5rvLa3yP9GNdx46RZlAXw"
@@ -7,6 +9,8 @@ HOSPITAL_CODE = "JozjJWE21nqke7KYpBQO0DVbJ67bM5rvLa3yP9GNdx46RZlAXw"
 PERS_API_BASE_URL = f"https://{HOST_NAME}/api/v1/medical-system"
 PERS_API_KEY_PARAMETER = "/pers/api/api-key"
 PERS_API_URL = f"{PERS_API_BASE_URL}/hospitals/{HOSPITAL_CODE}/orders"
+
+logger = logging.getLogger("pers_api")
 
 class PersApiService:
 
@@ -28,24 +32,45 @@ class PersApiService:
     #RequestAPI
     @staticmethod
     def get_request_data():
-        api_key = PersApiService.get_api_key()
-        
-        response = requests.get(
-            PERS_API_URL,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Accept": "application/json",
-            },
-            timeout=30,
-        )
+        try:
+            api_key = PersApiService.get_api_key()
+            
+            response = requests.get(
+                PERS_API_URL,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Accept": "application/json",
+                },
+                timeout=30,
+            )
 
-        print("APIステータスコード：", response.status_code)
-        print("APIレスポンスヘッダー：", response.headers)
-        print("APIレスポンス本文", response.text[:1000])
+            print("APIステータスコード：", response.status_code)
+            print("APIレスポンスヘッダー：", response.headers)
+            print("APIレスポンス本文", response.text[:1000])
 
-        response.raise_for_status()
+            response.raise_for_status()
+            
+            return response.json()
         
-        return response.json()
+        except requests.exceptions.HTTPError:
+            logger.exception(
+                "PERS API GET失敗：HTTPエラー status_code=%s, body=%s",
+                response.status_code,
+                response.text[:1000],
+            )
+            raise
+        
+        except requests.exceptions.RequestException:
+            logger.exception("PERS API GET失敗：通信エラー")
+            raise
+        
+        except ValueError:
+            logger.exception("PERS API GET失敗：JSON解析エラー")
+            raise
+        
+        except Exception:
+            logger.exception("PERS API GET失敗：予期しないエラー")
+            raise
 
     #PutAPI
     @staticmethod

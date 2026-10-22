@@ -57,6 +57,15 @@ LOGGING = {
             "encoding": "utf-8",
             "formatter": "standard",              
         },
+        "api_file": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": LOG_DIR / "api.log",
+            "when": "midnight",
+            "interval": 1,
+            "backupCount": 30,
+            "encoding": "utf-8",
+            "formatter": "standard",
+        },
     },
     
     "loggers": {
@@ -74,6 +83,11 @@ LOGGING = {
             "handlers": ["manual_put_file"],
             "level": "INFO",
             "propagate": False,              
+        },
+        "pers_api": {
+            "handlers": ["api_file"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }

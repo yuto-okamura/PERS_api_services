@@ -32,8 +32,8 @@ class PatientService:
             admission_id=row["admission_id"],
             defaults={
                 "patient_id": row["patient_id"],
-                "patient_name": row["fullName"],
-                "patient_name_kana": row["fullNameKana"],
+                "patient_name": PatientService.strip_name(row["fullName"]),
+                "patient_name_kana": PatientService.strip_name(row["fullNameKana"]),
                 "birth_date": row["birthDate"],
                 "hospitalized_at": hospitalized_at,
             },

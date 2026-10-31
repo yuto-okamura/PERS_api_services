@@ -518,6 +518,23 @@ class PatientCsvImportForm(forms.Form):
                 "ファイル名の日時が正しくありません"
             )
 
+        try:
+            DataManipulationService.validate_csv_columns(
+                file,
+                {
+                    "patient_id",
+                    "fullName",
+                    "fullNameKana",
+                    "birthDate",
+                    "hospitalizedAt",
+                    "ward_code",
+                    "room_code",
+                    "bed_no",
+                },
+            )
+        except ValueError as exc:
+            raise forms.ValidationError(f"patient_csv：{exc}")
+
         return file
 
 class DischargeCsvImportForm(forms.Form):
@@ -531,7 +548,7 @@ class DischargeCsvImportForm(forms.Form):
             "【書式】<br>"
             " ・dischargedAt：退院日（YYYYmmdd または日付形式）<br>"
             " ・dischargedTime：退院時刻（HHMMSS、例093000）<br>"
-            " ※ dischagedTimeの値が空白の場合、退院時刻は12:00:00として登録されます"
+            " ※ dischargedTimeの値が空白の場合、退院時刻は12:00:00として登録されます"
         ),
         widget=forms.ClearableFileInput(attrs={"accept": ".csv"})
     )
@@ -543,7 +560,20 @@ class DischargeCsvImportForm(forms.Form):
             raise forms.ValidationError(
                 "対象退院データCsvはCsvファイルを指定してください"
             )
-            
+
+        try:
+            DataManipulationService.validate_csv_columns(
+                file,
+                {
+                    "patient_id",
+                    "dischargedAt",
+                    "dischargedTime",
+                },
+            )
+        except ValueError as exc:
+            raise forms.ValidationError(f"discharge_csv：{exc}")
+
+
         return file
 
 @admin.register(ImportHistory)
@@ -692,13 +722,6 @@ class ImportHistoryAdmin(admin.ModelAdmin):
                             with discharge_path.open("wb") as f:
                                 for chunk in discharge_file.chunks():
                                     f.write(chunk)
-                            
-                            raw_columns = pd.read_csv(discharge_path, nrows=0).columns.to_list()
-                            csv_import_logger.info(
-                                "手動退院csv：filename=%s, columns=%r",
-                                discharge_file.name,
-                                raw_columns,
-                            )
                             
                             discharge_df = (
                                 DataManipulationService.load_emr_discharge_data(

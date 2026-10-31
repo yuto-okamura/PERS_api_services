@@ -82,6 +82,27 @@ class DataManipulationService:
             )
         
         return max(files, key=lambda file: file.stem.split("_")[-1])
+
+    #ファイルのカラム名チェック
+    @staticmethod
+    def validate_csv_columns(file, required_columns):
+        try:
+            columns = pd.read_csv(file, nrows=0).columns.to_list()
+        except (
+            pd.errors.EmptyDataError,
+            UnicodeDecodeError,
+            pd.errors.ParserError,
+        ) as exc:
+            raise ValueError("csvを読み取れません") from exc
+        finally:
+            file.seek(0)
+            
+        missing = set(required_columns) - set(columns)
+        
+        if missing:
+            raise ValueError(
+                f"必須カラムがありません：{', '.join(sorted(missing))}"
+            )
     
     @staticmethod
     def load_emr_data(

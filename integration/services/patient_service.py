@@ -7,7 +7,13 @@ logger = logging.getLogger("batch")
 
 
 class PatientService:
-    
+
+    @staticmethod
+    def strip_name(value):
+        if pd.isna(value):
+            return value
+        return str(value).strip(" \u3000")
+
     @staticmethod
     def save_patient(row):
 

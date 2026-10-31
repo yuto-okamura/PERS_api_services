@@ -604,16 +604,54 @@ class ImportHistoryAdmin(admin.ModelAdmin):
                                 )
                             )
 
-                            for _, row in patient_df.iterrows():
-                                PatientService.save_patient(
-                                    row,
-                                )
+                            success_count = 0
+                            error_count = 0
 
                             for _, row in patient_df.iterrows():
-                                StayHistoryService.save_stay_history(
-                                    row,
-                                    row["admission_id"],
-                                )
+                                try:
+                                    PatientService.save_patient(
+                                        row,
+                                    )
+                                    success_count += 1
+
+                                except Exception:
+                                    csv_import_logger.exception(
+                                        "Patient保存失敗：patient_id=%s, admission_id=%s",
+                                        row.get("patient_id"),
+                                        row.get("admission_id"),
+                                    )
+                                    error_count += 1
+
+                            csv_import_logger.info(
+                                "Patientデータ取込：成功=%s件, 失敗=%s件",
+                                success_count,
+                                error_count,
+                            )
+
+                            success_count = 0
+                            error_count = 0
+
+                            for _, row in patient_df.iterrows():
+                                try:
+                                    StayHistoryService.save_stay_history(
+                                        row,
+                                        row["admission_id"],
+                                    )
+                                    success_count += 1
+                                
+                                except Exception:
+                                    csv_import_logger.exception(
+                                        "StayHistory保存失敗：patient_id=%s, admission_id=%s",
+                                        row.get("patient_id"),
+                                        row.get("admission_id"),
+                                    )
+                                    error_count += 1
+
+                            csv_import_logger.info(
+                                "StayHistoryデータ取込：成功=%s件, 失敗=%s件",
+                                success_count,
+                                error_count,
+                            )
 
                         self.message_user(
                             request,
@@ -660,10 +698,29 @@ class ImportHistoryAdmin(admin.ModelAdmin):
                                 )
                             )
 
+                            success_count = 0
+                            error_count = 0
+
                             for _, row in discharge_df.iterrows():
-                                PatientService.save_discharge(
-                                    row,
-                                )
+                                try:
+                                    PatientService.save_discharge(
+                                        row,
+                                    )
+                                    success_count += 1
+
+                                except Exception:
+                                    csv_import_logger.exception(
+                                        "discharge保存失敗：patient_id=%s, admission_id=%s",
+                                        row.get("patient_id"),
+                                        row.get("admission_id"),
+                                    )
+                                    error_count += 1
+
+                            csv_import_logger.info(
+                                "dischargeデータ取込：成功=%s件, 失敗=%s件",
+                                success_count,
+                                error_count,
+                            )
 
                         self.message_user(
                             request,

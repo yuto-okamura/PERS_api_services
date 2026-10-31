@@ -17,6 +17,7 @@ from django.shortcuts import redirect
 import re
 import json
 import logging
+import pandas as pd
 
 from .models import (
     PutHistory,
@@ -692,6 +693,13 @@ class ImportHistoryAdmin(admin.ModelAdmin):
                                 for chunk in discharge_file.chunks():
                                     f.write(chunk)
                             
+                            raw_columns = pd.read_csv(discharge_path, nrows=0).columns.to_list()
+                            csv_import_logger.info(
+                                "手動退院csv：filename=%s, columns=%r",
+                                discharge_file.name,
+                                raw_columns,
+                            )
+                            
                             discharge_df = (
                                 DataManipulationService.load_emr_discharge_data(
                                     discharge_file_path=discharge_path,
@@ -715,12 +723,6 @@ class ImportHistoryAdmin(admin.ModelAdmin):
                                         row.get("admission_id"),
                                     )
                                     error_count += 1
-
-                            csv_import_logger.info(
-                                "dischargeデータ取込：成功=%s件, 失敗=%s件",
-                                success_count,
-                                error_count,
-                            )
 
                         self.message_user(
                             request,

@@ -240,7 +240,7 @@ class DataManipulationService:
 
         try:
             discharge_df = pd.read_csv(discharge_file_path)
-
+            
         except pd.errors.EmptyDataError:
             discharge_df = pd.DataFrame(
                 columns=["patient_id", "dischargedAt"]

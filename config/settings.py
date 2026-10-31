@@ -28,7 +28,6 @@ LOGGING = {
             "style": "{",
         },
     },
-    
     "handlers": {
         "django_file": {
             "class": "logging.handlers.TimedRotatingFileHandler",
@@ -67,7 +66,6 @@ LOGGING = {
             "formatter": "standard",
         },
     },
-    
     "loggers": {
         "django": {
             "handlers": ["django_file"],

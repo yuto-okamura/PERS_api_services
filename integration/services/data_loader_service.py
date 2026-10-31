@@ -74,7 +74,7 @@ class DataManipulationService:
         if data_dir is None:
             data_dir = DATA_DIR
         
-        files = list(DATA_DIR.glob(f"{file_name}_*.csv"))
+        files = list(data_dir.glob(f"{file_name}_*.csv"))
 
         if not files:
             raise FileNotFoundError(

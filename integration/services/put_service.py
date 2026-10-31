@@ -174,9 +174,10 @@ class PutService:
 
             logger.warning(
                 "PUT対象外：APIリクエストとEMRデータの不一致 "
-                "patient_id=%s, order_code=%s",
+                "patient_id=%s, order_code=%s, full_name_kana=%s",
                 patient_id,
                 order_code,
+                row["patient_fullNameKana"],
             )
 
             PutHistoryService.save_put_excluded(

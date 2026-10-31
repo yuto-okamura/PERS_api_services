@@ -178,7 +178,7 @@ class ImportHistory(StayHistory):
     #Csv取込専用の管理画面用モデル
     
     class Meta:
-        proxy = True,
+        proxy = True
         verbose_name = "Csv取込"
         verbose_name_plural = "Csv取込"
 

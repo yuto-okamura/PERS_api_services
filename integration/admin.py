@@ -530,7 +530,7 @@ class DischargeCsvImportForm(forms.Form):
             "【書式】<br>"
             " ・dischargedAt：退院日（YYYYmmdd または日付形式）<br>"
             " ・dischargedTime：退院時刻（HHMMSS、例093000）<br>"
-            " ※ dischagedTimeがない場合、退院時刻は12:00:00として登録されます"
+            " ※ dischagedTimeの値が空白の場合、退院時刻は12:00:00として登録されます"
         ),
         widget=forms.ClearableFileInput(attrs={"accept": ".csv"})
     )

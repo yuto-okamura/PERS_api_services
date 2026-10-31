@@ -139,6 +139,8 @@ class StayHistoryService:
             if stay.bed_id != previous_bed_id:
                 event_no += 1
                 
+                stayed_at_local = timezone.localtime(stay.stayed_at)
+                
                 event = {
                     "id": f"{admission_id}-{event_no:03d}",
                     "admissionId": admission_id,
@@ -157,7 +159,7 @@ class StayHistoryService:
                         "id": stay.bed.id,
                         "name": stay.bed.bed_no,
                     },
-                    "executedAt": stay.stayed_at.strftime(
+                    "executedAt": stayed_at_local.strftime(
                         "%Y-%m-%d %H:%M:%S"
                     ),
                     "isPriceDifference":{},
@@ -166,9 +168,9 @@ class StayHistoryService:
                 events.append(event)
                 previous_bed_id = stay.bed_id
 
-            if event is not None:                
+            if event is not None:
                 event["isPriceDifference"][
-                    stay.stayed_at.strftime("%Y-%m-%d")
+                    stayed_at_local.strftime("%Y-%m-%d")
                 ] = False
 
         return events

@@ -136,10 +136,10 @@ class StayHistoryService:
         event_no = 0
 
         for stay in stays:
+            stayed_at_local = timezone.localtime(stay.stayed_at)
+            
             if stay.bed_id != previous_bed_id:
                 event_no += 1
-                
-                stayed_at_local = timezone.localtime(stay.stayed_at)
                 
                 event = {
                     "id": f"{admission_id}-{event_no:03d}",

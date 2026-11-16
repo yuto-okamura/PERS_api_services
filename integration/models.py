@@ -251,3 +251,35 @@ class Patient(models.Model):
 
     def __str__(self):
         return f"{self.patient_id} {self.patient_name}"
+
+class ApiPatientSnapshot(models.Model):
+    order_code = models.CharField(
+        "オーダーコード",
+        max_length=20,
+        db_index=True,
+    )
+
+    patient_id = models.CharField(
+        "患者ID",
+        max_length=10,
+        db_index=True,
+    )
+    
+    birth_date = models.DateField(
+        "生年月日"
+    )
+    
+    api_data = models.JSONField(
+        "APIデータ"
+    )
+
+    created_at = models.DateTimeField(
+        "取得日時",
+        auto_now_add=True,
+    )
+
+    class Meta:
+        db_table = "integration_api_patient_snapshot"
+        verbose_name = "API取得データ"
+        verbose_name_plural = "API取得データ"
+        ordering = ["-created_at"]

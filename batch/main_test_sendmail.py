@@ -14,7 +14,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 AWS_REGION = "ap-northeast-1"
-FROM_ADDRESS = "alert@sonodakai.or.jp"
+FROM_ADDRESS = "dx-alert@sonodakai.or.jp"
 TO_ADDRESS = "dx-dept@sonodakai.or.jp"
 
 def main():

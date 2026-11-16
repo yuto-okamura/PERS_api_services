@@ -24,6 +24,7 @@ from .models import (
     StayHistory,
     ImportHistory,
     Patient,
+    ApiPatientSnapshot,
 )
 
 from integration.services.put_service import PutService
@@ -481,6 +482,53 @@ class StayHistoryAdmin(admin.ModelAdmin):
     search_fields = (
         "admission_id",
     )
+
+@admin.register(ApiPatientSnapshot)
+class ApiPatientSnapshotAdmin(admin.ModelAdmin):
+    list_display = (
+        "order_code",
+        "patient_id",
+        "created_at",
+    )
+
+    ordering = (
+        "-created_at",
+    )
+
+    search_fields = (
+        "order_code",
+        "patient_id",
+    )
+
+    readonly_fields = (
+        "order_code",
+        "patient_id",
+        "birth_date",
+        "api_data_display",
+        "created_at",
+    )
+
+    @admin.display(description="リクエストJSON")
+    def api_data_display(self, obj):
+        if obj.api_data is None:
+            return "-"
+        
+        json_text = json.dumps(
+            obj.api_data,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+        return format_html(
+            '<pre style="'
+            'max-height: 400px; '
+            'overflow: auto; '
+            'white-space: pre-wrap; '
+            'word-break: break-word; '
+            'margin: 0;'
+            '">{}</pre>',
+            json_text,
+        )
 
 class PatientCsvImportForm(forms.Form):
     #Csv取込専用フォーム

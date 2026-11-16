@@ -491,6 +491,14 @@ class ApiPatientSnapshotAdmin(admin.ModelAdmin):
         "created_at",
     )
 
+    fields = (
+        "order_code",
+        "patient_id",
+        "birth_date",
+        "api_data_display",
+        "created_at",
+    )
+
     ordering = (
         "-created_at",
     )

@@ -496,6 +496,7 @@ class ApiPatientSnapshotAdmin(admin.ModelAdmin):
         "patient_id",
         "birth_date",
         "api_data_display",
+        "patient_birth_date_display",
         "created_at",
     )
 
@@ -513,6 +514,7 @@ class ApiPatientSnapshotAdmin(admin.ModelAdmin):
         "patient_id",
         "birth_date",
         "api_data_display",
+        "patient_birth_date_display",
         "created_at",
     )
 
@@ -537,6 +539,17 @@ class ApiPatientSnapshotAdmin(admin.ModelAdmin):
             '">{}</pre>',
             json_text,
         )
+    
+    @admin.display(description="EMR登録生年月日")
+    def patient_birth_date_display(self, obj):
+        patient = Patient.objects.filter(
+            patient_id=obj.patient_id
+        ).first()
+
+        if patient is None:
+            return "一致するpatient_idがEMRデータにありません"
+        
+        return patient.birth_date or "生年月日未登録"
 
 class PatientCsvImportForm(forms.Form):
     #Csv取込専用フォーム

@@ -3,6 +3,8 @@ import pandas as pd
 import logging
 import json
 from pathlib import Path
+from dataclasses import dataclass
+from typing import Any
 
 from integration.models import PutHistory
 from integration.services.data_loader_service import DataManipulationService
@@ -11,6 +13,13 @@ from integration.services.stay_history_service import StayHistoryService
 from integration.services.api_client_service import PersApiService
 
 logger = logging.getLogger("batch")
+
+@dataclass
+class PutResult:
+    status: str
+    order_code: str
+    response: Any = None
+    error_message: str | None = None
 
 class PutService:
 
@@ -190,7 +199,11 @@ class PutService:
                 user=user,
             )
 
-            return None
+            return PutResult(
+                status="error",
+                order_code=order_code,
+                error_message="APIリクエストとEMRデータの不一致",
+            )
 
         status = DataManipulationService.set_status(row)
 
@@ -207,13 +220,17 @@ class PutService:
                 row=row,
                 order_code=order_code,
                 error_message=(
-                    "APIリクエストとEMRデータの不一致"
+                    "status判定不可"
                 ),
                 put_type=put_type,
                 user=user,
             )
 
-            return None
+            return PutResult(
+                status="excluded",
+                order_code=order_code,
+                error_message="status判定不可"
+            )
 
         admission_id = row["admission_id"]
         hospitalized_at = row["hospitalized_at"]
@@ -267,7 +284,11 @@ class PutService:
                 put_type=put_type,
                 user=user,
             )
-            return None
+            return PutResult(
+                status="error",
+                order_code=order_code,
+                error_message="JSONデータ作成エラー",
+            )
 
         response = PutService.execute(
             put_type=put_type,
@@ -277,4 +298,8 @@ class PutService:
             patient_name=patient_name,
         )
 
-        return response
+        return PutResult(
+            status="success",
+            order_code=order_code,
+            response=response,
+        )

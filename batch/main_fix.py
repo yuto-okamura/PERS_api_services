@@ -14,9 +14,10 @@ from django.utils import timezone
 django.setup()
 
 from integration.services.data_loader_service import DataManipulationService
-from integration.services.put_service import PutService
+from integration.services.put_service import PutService, PutResult
 from integration.services.stay_history_service import StayHistoryService
 from integration.services.patient_service import PatientService
+from integration.services.api_client_service import PersApiService
 from integration.models import PutHistory
 
 logger = logging.getLogger("batch")
@@ -114,7 +115,9 @@ def main():
 
     logger.info("API取得開始")
 
-    api_df = DataManipulationService.load_api_data()
+    json_data = PersApiService.get_request_data()
+
+    api_df = DataManipulationService.load_api_data(json_data)
 
     for _, row in api_df.iterrows():
         PatientService.save_api_patient(row)
@@ -133,14 +136,31 @@ def main():
         merged_df['_merge'].value_counts(dropna=False).to_dict(),
     )
 
+    errors = []
+
     for _, row in merged_df.iterrows():
-        PutService.put_execute(
-            row=row,
-            put_type=PutHistory.PutType.AUTO,
-        )
+        try:
+            result = PutService.put_execute(
+                row=row,
+                put_type=PutHistory.PutType.AUTO,
+            )
+
+        except Exception:
+            logger.exception("PUT処理中に予期しないエラー発生")
+            errors.append(
+                PutResult(
+                    status="error",
+                    order_code=str(row.get("orderCode","")),
+                    error_message="予期しない例外",
+                )
+            )
         
+        else:
+            if result.status == "error":
+                errors.append(result)
+
         time.sleep(1)
-        
+       
     logger.info("バッチ終了")
 
     return None

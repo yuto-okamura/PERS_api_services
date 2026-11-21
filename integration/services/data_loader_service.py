@@ -1,6 +1,5 @@
 import json
 import pandas as pd
-from .api_client_service import PersApiService
 from pathlib import Path
 from datetime import datetime, date
 from django.utils import timezone
@@ -18,9 +17,7 @@ class DataManipulationService:
     
     #APIデータ取得
     @staticmethod
-    def load_api_data():
-
-        json_data = PersApiService.get_request_data()
+    def load_api_data(json_data):
         
         api_df = pd.json_normalize(json_data["data"])
 
@@ -46,10 +43,10 @@ class DataManipulationService:
         ).dt.strftime("%Y-%m-%d")
 
         return api_df
-
+    
     @staticmethod
-    def get_manual_put_row(patient_id):
-        api_df = DataManipulationService.load_api_data()
+    def get_manual_put_row(patient_id, json_data):
+        api_df = DataManipulationService.load_api_data(json_data)
         
         if api_df[api_df["patient_id"] == patient_id].empty:
             return None
@@ -297,8 +294,8 @@ class DataManipulationService:
         return patient_df, discharge_df    
 
     @staticmethod
-    def merge_data():
-        api_df = DataManipulationService.load_api_data()
+    def merge_data(json_data):
+        api_df = DataManipulationService.load_api_data(json_data)
         emr_df = DataManipulationService.load_emr_data()
 
         merged_df = api_df.merge(
@@ -627,8 +624,8 @@ class DataManipulationService:
 
     #処理まとめ
     @staticmethod
-    def data_process():
-        merged_df = DataManipulationService.merge_data()
+    def data_process(json_data):
+        merged_df = DataManipulationService.merge_data(json_data)
         
         master_df = DataManipulationService.create_master_df()
         

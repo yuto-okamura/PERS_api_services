@@ -179,11 +179,22 @@ class PutService:
         patient_name = row["patient_name"]
 
 
-        if row["_merge"] != "both":
+        mismatch_messages = {
+            "patient_id_mismatch": "EMRデータに一致するpatient_idがありません",
+            "birth_date_mismatch": "patient_idは一致しますが、生年月日が一致しません",
+            "order_code_mismatch": "patient_idと生年月日は一致しますが、orderCodeが一致しません",
+        }
+        mismatch_reason = row.get("mismatch_reason")
+
+        if pd.notna(mismatch_reason):
+            error_message = mismatch_messages.get(
+                mismatch_reason,
+                "APIリクエストとEMRデータの不一致",
+            )
 
             logger.warning(
-                "PUT対象外：APIリクエストとEMRデータの不一致 "
-                "patient_id=%s, order_code=%s, full_name_kana=%s",
+                "PUT対象外：%s patient_id=%s, order_code=%s, full_name_kana=%s",
+                error_message,
                 patient_id,
                 order_code,
                 row["patient_fullNameKana"],
@@ -192,9 +203,7 @@ class PutService:
             PutHistoryService.save_put_excluded(
                 row=row,
                 order_code=order_code,
-                error_message=(
-                    "APIリクエストとEMRデータの不一致"
-                ),
+                error_message=error_message,
                 put_type=put_type,
                 user=user,
             )
@@ -202,7 +211,7 @@ class PutService:
             return PutResult(
                 status="error",
                 order_code=order_code,
-                error_message="APIリクエストとEMRデータの不一致",
+                error_message=error_message,
             )
 
         status = DataManipulationService.set_status(row)

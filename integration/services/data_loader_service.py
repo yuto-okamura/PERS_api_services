@@ -437,7 +437,7 @@ class DataManipulationService:
             validate="one_to_one",
             indicator=True,
         )
-        
+
         return merged_df
 
     @staticmethod

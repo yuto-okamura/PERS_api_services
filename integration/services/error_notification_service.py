@@ -1,5 +1,6 @@
 import traceback
 import boto3
+from dataclasses import dataclass
 from botocore.exceptions import ClientError
 
 AWS_REGION = "ap-northeast-1"
@@ -7,17 +8,27 @@ FROM_ADDRESS = "dx-alert@sonodakai.or.jp"
 TO_ADDRESS = "dx-dept@sonodakai.or.jp"
 
 
+@dataclass
+class BatchError:
+    key_value: str
+    message: str
+    category: str
+    importance: str
+
+
 class ErrorNotificationService:
     
     @staticmethod
-    def send_put_error_alert(errors):
+    def send_error_alert(errors):
 
         error_body = "\n\n".join(
             (
-                f"{i}. オーダーコード: {result.order_code}\n"
-                f"エラー内容: {result.error_message or '-'}"
+                f"{i}. 重要度: {error.importance}\n"
+                f"種別: {error.category}\n"
+                f"識別値: {error.key_value}\n"
+                f"メッセージ: {error.message or '-'}"
             )
-        for i, result in enumerate(errors, start=1)
+        for i, error in enumerate(errors, start=1)
         )
         
 
@@ -37,7 +48,7 @@ class ErrorNotificationService:
                     },
                     "Body": {
                         "Text": {
-                            "Data": f"PUT処理で{len(errors)}件のエラーを確認 \n\n{error_body}",
+                            "Data": f"バッチ処理で{len(errors)}件のエラーを確認しました。\n\n{error_body}",
                             "Charset": "UTF-8"
                         },
                     },

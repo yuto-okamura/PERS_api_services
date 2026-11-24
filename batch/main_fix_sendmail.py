@@ -1,6 +1,7 @@
 import os
 import logging
 import time
+from datetime import datetime
 
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
@@ -14,10 +15,13 @@ from django.utils import timezone
 django.setup()
 
 from integration.services.data_loader_service import DataManipulationService
-from integration.services.put_service import PutService, PutResult
+from integration.services.put_service import PutService
 from integration.services.stay_history_service import StayHistoryService
 from integration.services.patient_service import PatientService
-from integration.services.error_notification_service import ErrorNotificationService
+from integration.services.error_notification_service import (
+    BatchError,
+    ErrorNotificationService,
+)
 from integration.services.api_patient_snapshot_service import ApiDataService
 from integration.services.api_client_service import PersApiService
 from integration.models import PutHistory
@@ -28,10 +32,42 @@ def main():
 
     logger.info("バッチ開始")
 
+    errors = []
+
     #データフレームの作成
 
+    try:
+        patient_file_path = DataManipulationService.get_latest_data_file(
+            "current_patient"
+        )
+
+        file_timestamp = datetime.strptime(
+            patient_file_path.stem.split("_")[-1],
+            "%Y%m%d%H%M%S",
+        )
+        if file_timestamp.date() != timezone.localdate():
+            raise ValueError(
+                f"本日の患者データではありません: {patient_file_path.name}"
+            )
+
+    except Exception:
+        logger.exception("本日の患者データ確認に失敗しました")
+        errors.append(
+            BatchError(
+                key_value="current_patient",
+                message="当日データの取得エラー。管理端末を確認してください",
+                category="データ取得",
+                importance="A",
+            )
+        )
+        ErrorNotificationService.send_error_alert(errors)
+        logger.info("患者データ確認エラーのためバッチ終了")
+        return None
+
     emr_patient_df, discharge_df = (
-        DataManipulationService.load_emr_dataset()
+        DataManipulationService.load_emr_dataset(
+            patient_file_path=patient_file_path,
+        )
     )
 
     logger.info("Patient処理開始")
@@ -128,8 +164,10 @@ def main():
         saved_count,
     )
 
-    for _, row in api_df.iterrows():
-        PatientService.save_api_patient(row)
+    api_df["mismatch_reason"] = None
+    for index, row in api_df.iterrows():
+        save_result = PatientService.save_api_patient(row)
+        api_df.at[index, "mismatch_reason"] = save_result.mismatch_reason
 
     if api_df.empty:
         logger.info("PERS API対象データなし")
@@ -145,8 +183,6 @@ def main():
         merged_df['_merge'].value_counts(dropna=False).to_dict(),
     )
 
-    errors = []
-
     for _, row in merged_df.iterrows():
         try:
             result = PutService.put_execute(
@@ -157,21 +193,29 @@ def main():
         except Exception:
             logger.exception("PUT処理中に予期しないエラー発生")
             errors.append(
-                PutResult(
-                    status="error",
-                    order_code=str(row.get("orderCode","")),
-                    error_message="予期しない例外",
+                BatchError(
+                    key_value=str(row.get("orderCode", "")),
+                    message="予期しない例外",
+                    category="PUT処理",
+                    importance="C",
                 )
             )
         
         else:
             if result.status == "error":
-                errors.append(result)
+                errors.append(
+                    BatchError(
+                        key_value=result.order_code,
+                        message=result.error_message or "PUT処理エラー",
+                        category="PUT処理",
+                        importance="C",
+                    )
+                )
 
         time.sleep(1)
 
     if errors:
-        sent = ErrorNotificationService.send_put_error_alert(errors)
+        sent = ErrorNotificationService.send_error_alert(errors)
         if sent:
             logger.info(
                 "%d件のエラーあり。エラー通知をSESへ依頼",

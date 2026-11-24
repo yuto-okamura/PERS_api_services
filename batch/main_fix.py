@@ -119,8 +119,10 @@ def main():
 
     api_df = DataManipulationService.load_api_data(json_data)
 
-    for _, row in api_df.iterrows():
-        PatientService.save_api_patient(row)
+    api_df["mismatch_reason"] = None
+    for index, row in api_df.iterrows():
+        save_result = PatientService.save_api_patient(row)
+        api_df.at[index, "mismatch_reason"] = save_result.mismatch_reason
 
     if api_df.empty:
         logger.info("PERS API対象データなし")

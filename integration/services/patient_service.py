@@ -1,9 +1,16 @@
 import logging
 import pandas as pd
+from dataclasses import dataclass
 from django.utils import timezone
 from integration.models import Patient
 
 logger = logging.getLogger("batch")
+
+
+@dataclass
+class ApiPatientSaveResult:
+    patient: Patient | None
+    mismatch_reason: str | None = None
 
 
 class PatientService:
@@ -119,22 +126,39 @@ class PatientService:
         admission_id = row.get("pers_admission_id")
         birth_date = row.get("birthDate")
 
+        patient = None
         if pd.notna(admission_id) and admission_id:
             patient = Patient.objects.filter(
                 admission_id=admission_id,
             ).first()
-        
-        elif pd.notna(patient_id) and patient_id:
+
+        if patient is None and pd.notna(patient_id) and patient_id:
             patient = Patient.objects.filter(
                 patient_id=patient_id,
                 birth_date=birth_date,
             ).order_by("-hospitalized_at").first()
-        
-        else:
-            return None
 
         if patient is None:
-            return None
+            if Patient.objects.filter(patient_id=patient_id).exists():
+                mismatch_reason = "birth_date_mismatch"
+            else:
+                mismatch_reason = "patient_id_mismatch"
+            return ApiPatientSaveResult(
+                patient=None,
+                mismatch_reason=mismatch_reason,
+            )
+
+        mismatch_reason = None
+        incoming_order_code = row.get("orderCode")
+        if (
+            pd.notna(patient.order_code)
+            and str(patient.order_code).strip()
+            and pd.notna(incoming_order_code)
+            and str(incoming_order_code).strip()
+            and str(patient.order_code).strip()
+            != str(incoming_order_code).strip()
+        ):
+            mismatch_reason = "order_code_mismatch"
     
         update_fields = []
         
@@ -165,7 +189,10 @@ class PatientService:
         if update_fields:
             patient.save()
 
-        return patient
+        return ApiPatientSaveResult(
+            patient=patient,
+            mismatch_reason=mismatch_reason,
+        )
 
     @staticmethod
     def load_patient_df():

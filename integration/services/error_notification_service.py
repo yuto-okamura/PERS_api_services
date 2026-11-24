@@ -48,7 +48,14 @@ class ErrorNotificationService:
                     },
                     "Body": {
                         "Text": {
-                            "Data": f"バッチ処理で{len(errors)}件のエラーを確認しました。\n\n{error_body}",
+                            "Data": (
+                                f"バッチ処理で{len(errors)}件のエラーを確認しました。\n\n"
+                                "【重要度の目安】\n"
+                                "A：早急に確認・対応が必要\n"
+                                "B：確認が必要\n"
+                                "C：早急な確認・対応は不要\n\n"
+                                f"{error_body}"
+                            ),
                             "Charset": "UTF-8"
                         },
                     },

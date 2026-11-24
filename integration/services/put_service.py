@@ -180,8 +180,12 @@ class PutService:
 
 
         mismatch_messages = {
-            "patient_id_mismatch": "EMRデータに一致するpatient_idがありません",
-            "birth_date_mismatch": "patient_idは一致しますが、生年月日が一致しません",
+            "patient_id_mismatch": (
+                "EMRデータに一致するpatient_idがありません\n"
+                "IDが間違っている OR 入院処理がまだ行われていません\n"
+                "patient_idとEMRデータを確認してください"
+            ),
+            "birth_date_mismatch": "patient_idは一致するデータはありますが、生年月日が一致しません",
             "order_code_mismatch": "patient_idと生年月日は一致しますが、orderCodeが一致しません",
         }
         mismatch_reason = row.get("mismatch_reason")
